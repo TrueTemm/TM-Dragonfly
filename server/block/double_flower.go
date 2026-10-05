@@ -1,0 +1,96 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/go-gl/mathgl/mgl64"
+)
+
+type DoubleFlower struct {
+	transparent
+	empty
+
+	UpperPart bool
+
+	Type DoubleFlowerType
+}
+
+func (d DoubleFlower) FlammabilityInfo() FlammabilityInfo {
+	return newFlammabilityInfo(60, 100, true)
+}
+
+func (d DoubleFlower) BoneMeal(pos cube.Pos, tx *world.Tx) item.BoneMealResult {
+	dropItem(tx, item.NewStack(d, 1), pos.Vec3Centre())
+	return item.BoneMealResultSmall
+}
+
+func (d DoubleFlower) NeighbourUpdateTick(pos, _ cube.Pos, tx *world.Tx) {
+	if d.UpperPart {
+		if bottom, ok := tx.Block(pos.Side(cube.FaceDown)).(DoubleFlower); !ok || bottom.Type != d.Type || bottom.UpperPart {
+			breakBlockNoDrops(d, pos, tx)
+		}
+	} else if upper, ok := tx.Block(pos.Side(cube.FaceUp)).(DoubleFlower); !ok || upper.Type != d.Type || !upper.UpperPart {
+		breakBlockNoDrops(d, pos, tx)
+	} else if !supportsVegetation(d, tx.Block(pos.Side(cube.FaceDown))) {
+		breakBlock(d, pos, tx)
+	}
+}
+
+func (d DoubleFlower) UseOnBlock(pos cube.Pos, face cube.Face, _ mgl64.Vec3, tx *world.Tx, user item.User, ctx *item.UseContext) bool {
+	pos, _, used := firstReplaceable(tx, pos, face, d)
+	if !used || !replaceableWith(tx, pos.Side(cube.FaceUp), d) || !supportsVegetation(d, tx.Block(pos.Side(cube.FaceDown))) {
+		return false
+	}
+
+	place(tx, pos, d, user, ctx)
+	place(tx, pos.Side(cube.FaceUp), DoubleFlower{Type: d.Type, UpperPart: true}, user, ctx)
+	return placed(ctx)
+}
+
+func (d DoubleFlower) BreakInfo() BreakInfo {
+	return newBreakInfo(0, alwaysHarvestable, nothingEffective, oneOf(d))
+}
+
+func (DoubleFlower) CompostChance() float64 {
+	return 0.65
+}
+
+func (d DoubleFlower) HasLiquidDrops() bool {
+	return true
+}
+
+func (d DoubleFlower) EncodeItem() (name string, meta int16) {
+	return "minecraft:" + d.Type.String(), 0
+}
+
+func (d DoubleFlower) EncodeBlock() (string, map[string]any) {
+	return "minecraft:" + d.Type.String(), map[string]any{"upper_block_bit": d.UpperPart}
+}
+
+func allDoubleFlowers() (b []world.Block) {
+	for _, d := range DoubleFlowerTypes() {
+		b = append(b, DoubleFlower{Type: d, UpperPart: true})
+		b = append(b, DoubleFlower{Type: d, UpperPart: false})
+	}
+	return
+}

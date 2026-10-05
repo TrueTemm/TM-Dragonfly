@@ -1,0 +1,27 @@
+# IDEs
+.idea/
+.vscode/
+.zed/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# server runtime data — regenerated on first start
+/world/
+/players/
+/resources/
+config.toml
+
+# logs
+logs/
+*.log
+*.log.gz
+
+# build output
+tm-dragonfly
+tm-dragonfly.exe
+*.exe
+*.test
+*.out
+*.prof

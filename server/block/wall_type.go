@@ -1,0 +1,163 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import "github.com/df-mc/dragonfly/server/world"
+
+func encodeWallBlock(block world.Block) string {
+	switch block := block.(type) {
+	case Andesite:
+		if !block.Polished {
+			return "andesite"
+		}
+	case Blackstone:
+		if block.Type == NormalBlackstone() {
+			return "blackstone"
+		} else if block.Type == PolishedBlackstone() {
+			return "polished_blackstone"
+		}
+	case Bricks:
+		return "brick"
+	case Cinnabar:
+		if !block.Chiseled {
+			return "cinnabar"
+		}
+	case CinnabarBricks:
+		return "cinnabar_brick"
+	case Cobblestone:
+		if block.Mossy {
+			return "mossy_cobblestone"
+		}
+		return "cobblestone"
+	case Deepslate:
+		if block.Type == CobbledDeepslate() {
+			return "cobbled_deepslate"
+		} else if block.Type == PolishedDeepslate() {
+			return "polished_deepslate"
+		}
+	case DeepslateBricks:
+		if !block.Cracked {
+			return "deepslate_brick"
+		}
+	case DeepslateTiles:
+		if !block.Cracked {
+			return "deepslate_tile"
+		}
+	case Diorite:
+		if !block.Polished {
+			return "diorite"
+		}
+	case EndBricks:
+		return "end_stone_brick"
+	case Granite:
+		if !block.Polished {
+			return "granite"
+		}
+	case MudBricks:
+		return "mud_brick"
+	case NetherBricks:
+		if block.Type == NormalNetherBricks() {
+			return "nether_brick"
+		} else if block.Type == RedNetherBricks() {
+			return "red_nether_brick"
+		}
+	case PolishedBlackstoneBrick:
+		if !block.Cracked {
+			return "polished_blackstone_brick"
+		}
+	case PolishedCinnabar:
+		return "polished_cinnabar"
+	case PolishedSulfur:
+		return "polished_sulfur"
+	case PolishedTuff:
+		return "polished_tuff"
+	case Prismarine:
+		if block.Type == NormalPrismarine() {
+			return "prismarine"
+		}
+	case ResinBricks:
+		return "resin_brick"
+	case Sandstone:
+		if block.Type == NormalSandstone() {
+			if block.Red {
+				return "red_sandstone"
+			}
+			return "sandstone"
+		}
+	case StoneBricks:
+		if block.Type == NormalStoneBricks() {
+			return "stone_brick"
+		} else if block.Type == MossyStoneBricks() {
+			return "mossy_stone_brick"
+		}
+	case Sulfur:
+		if !block.Chiseled {
+			return "sulfur"
+		}
+	case SulfurBricks:
+		return "sulfur_brick"
+	case Tuff:
+		if !block.Chiseled {
+			return "tuff"
+		}
+	case TuffBricks:
+		if !block.Chiseled {
+			return "tuff_brick"
+		}
+	}
+	panic("invalid block used for wall")
+}
+
+func WallBlocks() []world.Block {
+	return []world.Block{
+		Andesite{},
+		Blackstone{Type: PolishedBlackstone()},
+		Blackstone{},
+		Bricks{},
+		Cinnabar{},
+		CinnabarBricks{},
+		Cobblestone{Mossy: true},
+		Cobblestone{},
+		DeepslateBricks{},
+		DeepslateTiles{},
+		Deepslate{Type: CobbledDeepslate()},
+		Deepslate{Type: PolishedDeepslate()},
+		Diorite{},
+		EndBricks{},
+		Granite{},
+		MudBricks{},
+		NetherBricks{Type: RedNetherBricks()},
+		NetherBricks{},
+		PolishedBlackstoneBrick{},
+		PolishedCinnabar{},
+		PolishedSulfur{},
+		PolishedTuff{},
+		Prismarine{},
+		ResinBricks{},
+		Sandstone{Red: true},
+		Sandstone{},
+		StoneBricks{Type: MossyStoneBricks()},
+		StoneBricks{},
+		Sulfur{},
+		SulfurBricks{},
+		Tuff{},
+		TuffBricks{},
+	}
+}

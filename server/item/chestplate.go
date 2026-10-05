@@ -1,0 +1,124 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package item
+
+import (
+	"github.com/df-mc/dragonfly/server/world"
+	"image/color"
+)
+
+type Chestplate struct {
+	Tier ArmourTier
+
+	Trim ArmourTrim
+}
+
+func (c Chestplate) Use(_ *world.Tx, _ User, ctx *UseContext) bool {
+	ctx.SwapHeldWithArmour(1)
+	return false
+}
+
+func (c Chestplate) MaxCount() int {
+	return 1
+}
+
+func (c Chestplate) DefencePoints() float64 {
+	switch c.Tier.Name() {
+	case "leather":
+		return 3
+	case "copper":
+		return 4
+	case "golden", "chainmail":
+		return 5
+	case "iron":
+		return 6
+	case "diamond", "netherite":
+		return 8
+	}
+	panic("invalid chestplate tier")
+}
+
+func (c Chestplate) Toughness() float64 {
+	return c.Tier.Toughness()
+}
+
+func (c Chestplate) KnockBackResistance() float64 {
+	return c.Tier.KnockBackResistance()
+}
+
+func (c Chestplate) EnchantmentValue() int {
+	return c.Tier.EnchantmentValue()
+}
+
+func (c Chestplate) DurabilityInfo() DurabilityInfo {
+	return DurabilityInfo{
+		MaxDurability: int(c.Tier.BaseDurability() + c.Tier.BaseDurability()/2.2),
+		BrokenItem:    simpleItem(Stack{}),
+	}
+}
+
+func (c Chestplate) SmeltInfo() SmeltInfo {
+	switch c.Tier.(type) {
+	case ArmourTierIron, ArmourTierChain:
+		return newOreSmeltInfo(NewStack(IronNugget{}, 1), 0.1)
+	case ArmourTierGold:
+		return newOreSmeltInfo(NewStack(GoldNugget{}, 1), 0.1)
+	case ArmourTierCopper:
+		return newOreSmeltInfo(NewStack(CopperNugget{}, 1), 0.1)
+	}
+	return SmeltInfo{}
+}
+
+func (c Chestplate) RepairableBy(i Stack) bool {
+	return armourTierRepairable(c.Tier)(i)
+}
+
+func (c Chestplate) Chestplate() bool {
+	return true
+}
+
+func (c Chestplate) WithTrim(trim ArmourTrim) world.Item {
+	c.Trim = trim
+	return c
+}
+
+func (c Chestplate) EncodeItem() (name string, meta int16) {
+	return "minecraft:" + c.Tier.Name() + "_chestplate", 0
+}
+
+func (c Chestplate) DecodeNBT(data map[string]any) any {
+	if t, ok := c.Tier.(ArmourTierLeather); ok {
+		if v, ok := data["customColor"].(int32); ok {
+			t.Colour = rgbaFromInt32(v)
+			c.Tier = t
+		}
+	}
+	c.Trim = readTrim(data)
+	return c
+}
+
+func (c Chestplate) EncodeNBT() map[string]any {
+	m := map[string]any{}
+	if t, ok := c.Tier.(ArmourTierLeather); ok && t.Colour != (color.RGBA{}) {
+		m["customColor"] = int32FromRGBA(t.Colour)
+	}
+	writeTrim(m, c.Trim)
+	return m
+}

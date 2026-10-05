@@ -1,0 +1,85 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/block/model"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/go-gl/mathgl/mgl64"
+)
+
+type EndRod struct {
+	transparent
+	flowingWaterDisplacer
+
+	Facing cube.Face
+}
+
+func (e EndRod) UseOnBlock(pos cube.Pos, face cube.Face, _ mgl64.Vec3, tx *world.Tx, user item.User, ctx *item.UseContext) bool {
+	pos, face, used := firstReplaceable(tx, pos, face, e)
+	if !used {
+		return false
+	}
+
+	e.Facing = face
+	if other, ok := tx.Block(pos.Side(face.Opposite())).(EndRod); ok {
+		if face == other.Facing {
+			e.Facing = face.Opposite()
+		}
+	}
+	place(tx, pos, e, user, ctx)
+	return placed(ctx)
+}
+
+func (EndRod) SideClosed(cube.Pos, cube.Pos, *world.Tx) bool {
+	return false
+}
+
+func (e EndRod) Model() world.BlockModel {
+	return model.EndRod{Axis: e.Facing.Axis()}
+}
+
+func (EndRod) LightEmissionLevel() uint8 {
+	return 14
+}
+
+func (e EndRod) BreakInfo() BreakInfo {
+	return newBreakInfo(0, alwaysHarvestable, nothingEffective, oneOf(e))
+}
+
+func (EndRod) EncodeItem() (name string, meta int16) {
+	return "minecraft:end_rod", 0
+}
+
+func (e EndRod) EncodeBlock() (string, map[string]any) {
+	if e.Facing.Axis() == cube.Y {
+		return "minecraft:end_rod", map[string]any{"facing_direction": int32(e.Facing)}
+	}
+	return "minecraft:end_rod", map[string]any{"facing_direction": int32(e.Facing.Opposite())}
+}
+
+func allEndRods() (b []world.Block) {
+	for _, f := range cube.Faces() {
+		b = append(b, EndRod{Facing: f})
+	}
+	return
+}

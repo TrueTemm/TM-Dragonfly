@@ -1,0 +1,283 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"fmt"
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/block/model"
+	"github.com/df-mc/dragonfly/server/internal/nbtconv"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/item/inventory"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/go-gl/mathgl/mgl64"
+	"strings"
+	"sync"
+)
+
+type Hopper struct {
+	transparent
+	sourceWaterDisplacer
+
+	Facing cube.Face
+
+	Powered bool
+
+	CustomName string
+
+	TransferCooldown int64
+
+	CollectCooldown int64
+
+	inventory *inventory.Inventory
+	viewerMu  *sync.RWMutex
+	viewers   map[ContainerViewer]struct{}
+}
+
+func NewHopper() Hopper {
+	m := new(sync.RWMutex)
+	v := make(map[ContainerViewer]struct{}, 1)
+	return Hopper{
+		inventory: inventory.New(5, func(slot int, _, item item.Stack) {
+			m.RLock()
+			defer m.RUnlock()
+			for viewer := range v {
+				viewer.ViewSlotChange(slot, item)
+			}
+		}),
+		viewerMu: m,
+		viewers:  v,
+	}
+}
+
+func (Hopper) ContainerSize() int { return 5 }
+
+func (Hopper) Model() world.BlockModel {
+	return model.Hopper{}
+}
+
+func (Hopper) SideClosed(cube.Pos, cube.Pos, *world.Tx) bool {
+	return false
+}
+
+func (Hopper) CanRedstoneWireStepDown(cube.Pos, cube.Pos, *world.Tx) bool {
+	return false
+}
+
+func (h Hopper) BreakInfo() BreakInfo {
+	return newBreakInfo(3, pickaxeHarvestable, pickaxeEffective, oneOf(Hopper{})).withBlastResistance(4.8).withBreakHandler(func(pos cube.Pos, tx *world.Tx, u item.User) {
+		for _, i := range h.Inventory(tx, pos).Clear() {
+			dropItem(tx, i, pos.Vec3())
+		}
+	})
+}
+
+func (h Hopper) Inventory(*world.Tx, cube.Pos) *inventory.Inventory {
+	return h.inventory
+}
+
+func (h Hopper) WithName(a ...any) world.Item {
+	h.CustomName = strings.TrimSuffix(fmt.Sprintln(a...), "\n")
+	return h
+}
+
+func (h Hopper) AddViewer(v ContainerViewer, _ *world.Tx, _ cube.Pos) {
+	h.viewerMu.Lock()
+	defer h.viewerMu.Unlock()
+	h.viewers[v] = struct{}{}
+}
+
+func (h Hopper) RemoveViewer(v ContainerViewer, _ *world.Tx, _ cube.Pos) {
+	h.viewerMu.Lock()
+	defer h.viewerMu.Unlock()
+	delete(h.viewers, v)
+}
+
+func (Hopper) Activate(pos cube.Pos, _ cube.Face, tx *world.Tx, u item.User, _ *item.UseContext) bool {
+	if opener, ok := u.(ContainerOpener); ok {
+		opener.OpenBlockContainer(pos, tx)
+		return true
+	}
+	return false
+}
+
+func (h Hopper) UseOnBlock(pos cube.Pos, face cube.Face, _ mgl64.Vec3, tx *world.Tx, user item.User, ctx *item.UseContext) bool {
+	pos, _, used := firstReplaceable(tx, pos, face, h)
+	if !used {
+		return false
+	}
+
+	h = NewHopper()
+	h.Facing = cube.FaceDown
+	if h.Facing != face {
+		h.Facing = face.Opposite()
+	}
+
+	place(tx, pos, h, user, ctx)
+	return placed(ctx)
+}
+
+func (h Hopper) Tick(_ int64, pos cube.Pos, tx *world.Tx) {
+	cooldownChanged := h.TransferCooldown > 0 || h.CollectCooldown > 0
+	if h.TransferCooldown > 0 {
+		h.TransferCooldown--
+	}
+	if h.CollectCooldown > 0 {
+		h.CollectCooldown--
+	}
+
+	if !h.Powered && h.TransferCooldown <= 0 {
+		inserted := h.insertItem(pos, tx)
+		extracted := h.extractItem(pos, tx)
+		if inserted || extracted {
+			h.TransferCooldown = 8
+			tx.SetBlock(pos, h, nil)
+			return
+		}
+	}
+
+	if cooldownChanged {
+		tx.SetBlockEntity(pos, h)
+	}
+}
+
+type HopperInsertable interface {
+	InsertItem(h Hopper, pos cube.Pos, tx *world.Tx) bool
+}
+
+func (h Hopper) insertItem(pos cube.Pos, tx *world.Tx) bool {
+	destPos := pos.Side(h.Facing)
+	dest := tx.Block(destPos)
+
+	if e, ok := dest.(HopperInsertable); ok {
+		return e.InsertItem(h, destPos, tx)
+	}
+
+	if container, ok := dest.(Container); ok {
+		for sourceSlot, sourceStack := range h.inventory.Slots() {
+			if sourceStack.Empty() {
+				continue
+			}
+
+			_, err := container.Inventory(tx, destPos).AddItem(sourceStack.Grow(-sourceStack.Count() + 1))
+			if err != nil {
+
+				return false
+			}
+
+			_ = h.inventory.SetItem(sourceSlot, sourceStack.Grow(-1))
+
+			if hopper, ok := dest.(Hopper); ok {
+				hopper.TransferCooldown = 8
+				tx.SetBlock(destPos, hopper, nil)
+			}
+
+			return true
+		}
+	}
+	return false
+}
+
+type HopperExtractable interface {
+	ExtractItem(h Hopper, pos cube.Pos, tx *world.Tx) bool
+}
+
+func (h Hopper) extractItem(pos cube.Pos, tx *world.Tx) bool {
+	originPos := pos.Side(cube.FaceUp)
+	origin := tx.Block(originPos)
+
+	if e, ok := origin.(HopperExtractable); ok {
+		return e.ExtractItem(h, originPos, tx)
+	}
+
+	if containerOrigin, ok := origin.(Container); ok {
+		for slot, stack := range containerOrigin.Inventory(tx, originPos).Slots() {
+			if stack.Empty() {
+
+				continue
+			}
+
+			_, err := h.inventory.AddItem(stack.Grow(-stack.Count() + 1))
+			if err != nil {
+
+				continue
+			}
+
+			_ = containerOrigin.Inventory(tx, originPos).SetItem(slot, stack.Grow(-1))
+
+			if hopper, ok := origin.(Hopper); ok {
+				hopper.TransferCooldown = 8
+				tx.SetBlock(originPos, hopper, nil)
+			}
+
+			return true
+		}
+	}
+	return false
+}
+
+func (Hopper) EncodeItem() (name string, meta int16) {
+	return "minecraft:hopper", 0
+}
+
+func (h Hopper) EncodeBlock() (string, map[string]any) {
+	return "minecraft:hopper", map[string]any{
+		"facing_direction": int32(h.Facing),
+		"toggle_bit":       h.Powered,
+	}
+}
+
+func (h Hopper) EncodeNBT() map[string]any {
+	if h.inventory == nil {
+		facing, powered, customName := h.Facing, h.Powered, h.CustomName
+
+		h = NewHopper()
+		h.Facing, h.Powered, h.CustomName = facing, powered, customName
+	}
+	m := map[string]any{
+		"Items":            nbtconv.InvToNBT(h.inventory),
+		"TransferCooldown": int32(h.TransferCooldown),
+		"id":               "Hopper",
+	}
+	if h.CustomName != "" {
+		m["CustomName"] = h.CustomName
+	}
+	return m
+}
+
+func (h Hopper) DecodeNBT(data map[string]any) any {
+	facing, powered := h.Facing, h.Powered
+
+	h = NewHopper()
+	h.Facing = facing
+	h.Powered = powered
+	h.CustomName = nbtconv.String(data, "CustomName")
+	h.TransferCooldown = int64(nbtconv.Int32(data, "TransferCooldown"))
+	nbtconv.InvFromNBT(h.inventory, nbtconv.Slice(data, "Items"))
+	return h
+}
+
+func allHoppers() (hoppers []world.Block) {
+	for _, f := range cube.Faces() {
+		hoppers = append(hoppers, Hopper{Facing: f})
+		hoppers = append(hoppers, Hopper{Facing: f, Powered: true})
+	}
+	return hoppers
+}

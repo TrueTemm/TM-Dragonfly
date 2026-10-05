@@ -1,0 +1,242 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"math/rand/v2"
+	"time"
+
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/df-mc/dragonfly/server/world/sound"
+)
+
+type Lava struct {
+	empty
+
+	Still bool
+
+	Depth int
+
+	Falling bool
+}
+
+func neighboursLavaFlammable(pos cube.Pos, tx *world.Tx) bool {
+	for i := cube.Face(0); i < 6; i++ {
+		if flammable, ok := tx.Block(pos.Side(i)).(Flammable); ok && flammable.FlammabilityInfo().LavaFlammable {
+			return true
+		}
+	}
+	return false
+}
+
+func (l Lava) ReplaceableBy(b world.Block) bool {
+	if _, ok := b.(LiquidRemovable); ok {
+		_, displacer := b.(world.LiquidDisplacer)
+		_, liquid := b.(world.Liquid)
+		return displacer || liquid
+	}
+	return true
+}
+
+func (l Lava) EntityInside(_ cube.Pos, _ *world.Tx, e world.Entity) {
+	if fallEntity, ok := e.(fallDistanceEntity); ok {
+		fallEntity.ResetFallDistance()
+	}
+	if flammable, ok := e.(flammableEntity); ok {
+		if l, ok := e.(livingEntity); ok {
+			l.Hurt(4, LavaDamageSource{})
+		}
+		flammable.SetOnFire(15 * time.Second)
+	}
+}
+
+func (l Lava) RandomTick(pos cube.Pos, tx *world.Tx, r *rand.Rand) {
+	i := r.IntN(3)
+	if i > 0 {
+		for j := 0; j < i; j++ {
+			pos = pos.Add(cube.Pos{r.IntN(3) - 1, 1, r.IntN(3) - 1})
+			if _, ok := tx.Block(pos).(Air); ok {
+				if neighboursLavaFlammable(pos, tx) {
+					Fire{}.Start(tx, pos)
+				}
+			}
+		}
+	} else {
+		for j := 0; j < 3; j++ {
+			pos = pos.Add(cube.Pos{r.IntN(3) - 1, 0, r.IntN(3) - 1})
+			if _, ok := tx.Block(pos.Side(cube.FaceUp)).(Air); ok {
+				if flammable, ok := tx.Block(pos).(Flammable); ok && flammable.FlammabilityInfo().LavaFlammable && flammable.FlammabilityInfo().Encouragement > 0 {
+					Fire{}.Start(tx, pos)
+				}
+			}
+		}
+	}
+}
+
+func (Lava) HasLiquidDrops() bool {
+	return false
+}
+
+func (Lava) LiquidRemoveBlock(pos cube.Pos, tx *world.Tx, _ world.Block) {
+	tx.PlaySound(pos.Vec3Centre(), sound.Fizz{})
+}
+
+func (Lava) LightDiffusionLevel() uint8 {
+	return 2
+}
+
+func (Lava) LightEmissionLevel() uint8 {
+	return 15
+}
+
+func (l Lava) NeighbourUpdateTick(pos, _ cube.Pos, tx *world.Tx) {
+	if !l.Harden(pos, tx, nil) {
+		tx.ScheduleBlockUpdate(pos, l, tx.World().Dimension().LavaSpreadDuration())
+	}
+}
+
+func (l Lava) ScheduledTick(pos cube.Pos, tx *world.Tx, _ *rand.Rand) {
+	if !l.Harden(pos, tx, nil) {
+		tickLiquid(l, pos, tx)
+	}
+}
+
+func (l Lava) LiquidDepth() int {
+	return l.Depth
+}
+
+func (Lava) SpreadDecay() int {
+	return 2
+}
+
+func (l Lava) WithDepth(depth int, falling bool) world.Liquid {
+	l.Depth = depth
+	l.Falling = falling
+	l.Still = false
+	return l
+}
+
+func (l Lava) LiquidFalling() bool {
+	return l.Falling
+}
+
+func (Lava) BlastResistance() float64 {
+	return 100
+}
+
+func (Lava) LiquidType() string {
+	return "lava"
+}
+
+func (l Lava) Harden(pos cube.Pos, tx *world.Tx, flownIntoBy *cube.Pos) bool {
+	var ok bool
+	var water, b world.Block
+
+	if flownIntoBy == nil {
+		var water, b world.Block
+		_, soulSoilFound := tx.Block(pos.Side(cube.FaceDown)).(SoulSoil)
+		pos.Neighbours(func(neighbour cube.Pos) {
+			if b != nil || neighbour[1] == pos[1]-1 {
+				return
+			}
+			if _, ok := tx.Block(neighbour).(BlueIce); ok {
+				if soulSoilFound {
+					b = Basalt{}
+				}
+				return
+			}
+			if waterBlock, ok := tx.Block(neighbour).(Water); ok {
+				water = waterBlock
+				if l.Depth == 8 && !l.Falling {
+					b = Obsidian{}
+					return
+				}
+				b = Cobblestone{}
+			}
+		}, tx.Range())
+		if b != nil {
+			ctx := tx.Event()
+			if tx.World().Handler().HandleLiquidHarden(ctx, pos, l, water, b); ctx.Cancelled() {
+				return false
+			}
+			tx.PlaySound(pos.Vec3Centre(), sound.Fizz{})
+			tx.SetBlock(pos, b, nil)
+			return true
+		}
+		return false
+	}
+	water, ok = tx.Block(*flownIntoBy).(Water)
+	if !ok {
+		return false
+	}
+
+	if l.Depth == 8 && !l.Falling {
+		b = Obsidian{}
+	} else {
+		b = Cobblestone{}
+	}
+	ctx := tx.Event()
+	if tx.World().Handler().HandleLiquidHarden(ctx, pos, l, water, b); ctx.Cancelled() {
+		return false
+	}
+	tx.SetBlock(pos, b, nil)
+	tx.PlaySound(pos.Vec3Centre(), sound.Fizz{})
+	return true
+}
+
+func (l Lava) EncodeBlock() (name string, properties map[string]any) {
+	if l.Depth < 1 || l.Depth > 8 {
+		panic("invalid lava depth, must be between 1 and 8")
+	}
+	v := 8 - l.Depth
+	if l.Falling {
+		v += 8
+	}
+	if l.Still {
+		return "minecraft:lava", map[string]any{"liquid_depth": int32(v)}
+	}
+	return "minecraft:flowing_lava", map[string]any{"liquid_depth": int32(v)}
+}
+
+func allLava() (b []world.Block) {
+	f := func(still, falling bool) {
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 8})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 7})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 6})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 5})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 4})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 3})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 2})
+		b = append(b, Lava{Still: still, Falling: falling, Depth: 1})
+	}
+	f(true, true)
+	f(true, false)
+	f(false, false)
+	f(false, true)
+	return
+}
+
+type LavaDamageSource struct{}
+
+func (LavaDamageSource) ReducedByResistance() bool { return true }
+func (LavaDamageSource) ReducedByArmour() bool     { return true }
+func (LavaDamageSource) Fire() bool                { return true }
+func (LavaDamageSource) IgnoreTotem() bool         { return false }

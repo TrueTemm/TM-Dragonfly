@@ -1,0 +1,56 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package biome
+
+import "image/color"
+
+type Meadow struct{}
+
+func (Meadow) Temperature() float64 {
+	return 0.3
+}
+
+func (Meadow) Rainfall() float64 {
+	return 0.8
+}
+
+func (Meadow) Depth() float64 {
+	return 0.1
+}
+
+func (Meadow) Scale() float64 {
+	return 0.2
+}
+
+func (Meadow) WaterColour() color.RGBA {
+	return color.RGBA{R: 0x60, G: 0xb7, B: 0xff, A: 0xa6}
+}
+
+func (Meadow) Tags() []string {
+	return []string{"mountains", "monster", "overworld", "meadow", "bee_habitat"}
+}
+
+func (Meadow) String() string {
+	return "meadow"
+}
+
+func (Meadow) EncodeBiome() int {
+	return 186
+}

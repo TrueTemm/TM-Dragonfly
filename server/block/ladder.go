@@ -1,0 +1,109 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/block/model"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/go-gl/mathgl/mgl64"
+	"time"
+)
+
+type Ladder struct {
+	transparent
+	sourceWaterDisplacer
+
+	Facing cube.Direction
+}
+
+func (l Ladder) NeighbourUpdateTick(pos, _ cube.Pos, tx *world.Tx) {
+	if _, ok := tx.Block(pos.Side(l.Facing.Face().Opposite())).(LightDiffuser); ok {
+		breakBlock(l, pos, tx)
+	}
+}
+
+func (l Ladder) UseOnBlock(pos cube.Pos, face cube.Face, _ mgl64.Vec3, tx *world.Tx, user item.User, ctx *item.UseContext) bool {
+	pos, face, used := firstReplaceable(tx, pos, face, l)
+	if !used {
+		return false
+	}
+	if face == cube.FaceUp || face == cube.FaceDown {
+		return false
+	}
+	if _, ok := tx.Block(pos.Side(face.Opposite())).(LightDiffuser); ok {
+		found := false
+		for _, i := range []cube.Face{cube.FaceSouth, cube.FaceNorth, cube.FaceEast, cube.FaceWest} {
+			if diffuser, ok := tx.Block(pos.Side(i)).(LightDiffuser); !ok || diffuser.LightDiffusionLevel() == 15 {
+				found = true
+				face = i.Opposite()
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	l.Facing = face.Direction()
+
+	place(tx, pos, l, user, ctx)
+	return placed(ctx)
+}
+
+func (l Ladder) EntityInside(_ cube.Pos, _ *world.Tx, e world.Entity) {
+	if fallEntity, ok := e.(fallDistanceEntity); ok {
+		fallEntity.ResetFallDistance()
+	}
+}
+
+func (l Ladder) SideClosed(cube.Pos, cube.Pos, *world.Tx) bool {
+	return false
+}
+
+func (l Ladder) BreakInfo() BreakInfo {
+	return newBreakInfo(0.4, alwaysHarvestable, axeEffective, oneOf(l))
+}
+
+func (Ladder) FuelInfo() item.FuelInfo {
+	return newFuelInfo(time.Second * 15)
+}
+
+func (l Ladder) EncodeItem() (name string, meta int16) {
+	return "minecraft:ladder", 0
+}
+
+func (l Ladder) EncodeBlock() (string, map[string]any) {
+	if l.Facing == unknownDirection {
+		return "minecraft:ladder", map[string]any{"facing_direction": int32(0)}
+	}
+	return "minecraft:ladder", map[string]any{"facing_direction": int32(l.Facing + 2)}
+}
+
+func (l Ladder) Model() world.BlockModel {
+	return model.Ladder{Facing: l.Facing}
+}
+
+func allLadders() (b []world.Block) {
+	for _, f := range append(cube.Directions(), unknownDirection) {
+		b = append(b, Ladder{Facing: f})
+	}
+	return
+}

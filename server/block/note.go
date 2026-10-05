@@ -1,0 +1,113 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"time"
+
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/internal/nbtconv"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/df-mc/dragonfly/server/world/particle"
+	"github.com/df-mc/dragonfly/server/world/sound"
+)
+
+type Note struct {
+	solid
+	bass
+
+	Pitch int
+
+	Powered bool
+}
+
+func (n Note) playNote(pos cube.Pos, tx *world.Tx) {
+	tx.PlaySound(pos.Vec3(), sound.Note{Instrument: n.instrument(pos, tx), Pitch: n.Pitch})
+	tx.AddParticle(pos.Vec3(), particle.Note{Instrument: n.Instrument(), Pitch: n.Pitch})
+}
+
+func (n Note) instrument(pos cube.Pos, tx *world.Tx) sound.Instrument {
+	if instrumentBlock, ok := tx.Block(pos.Side(cube.FaceDown)).(interface {
+		Instrument() sound.Instrument
+	}); ok {
+		return instrumentBlock.Instrument()
+	}
+	return sound.Piano()
+}
+
+func (n Note) DecodeNBT(data map[string]any) any {
+	n.Pitch = int(nbtconv.Uint8(data, "note"))
+	n.Powered = nbtconv.Bool(data, "powered")
+	return n
+}
+
+func (n Note) EncodeNBT() map[string]any {
+	return map[string]any{"note": byte(n.Pitch), "powered": boolByte(n.Powered)}
+}
+
+func (n Note) Activate(pos cube.Pos, _ cube.Face, tx *world.Tx, _ item.User, _ *item.UseContext) bool {
+	if !n.canPlay(pos, tx) {
+		return false
+	}
+	n.Pitch = (n.Pitch + 1) % 25
+	n.playNote(pos, tx)
+	tx.SetBlock(pos, n, &world.SetOpts{DisableBlockUpdates: true})
+	return true
+}
+
+func (n Note) RedstonePowerUpdate(pos cube.Pos, tx *world.Tx, power int) (world.Block, bool) {
+	powered := power > 0
+	if powered == n.Powered {
+		return n, false
+	}
+	n.Powered = powered
+	return n, true
+}
+
+func (n Note) RedstonePowerPostUpdate(pos cube.Pos, tx *world.Tx, before, after world.Block, _, _ int) {
+	beforeNote, beforeOK := before.(Note)
+	afterNote, afterOK := after.(Note)
+	if !beforeOK || !afterOK || beforeNote.Powered || !afterNote.Powered || !afterNote.canPlay(pos, tx) {
+		return
+	}
+	afterNote.playNote(pos, tx)
+}
+
+func (n Note) canPlay(pos cube.Pos, tx *world.Tx) bool {
+	_, ok := tx.Block(pos.Side(cube.FaceUp)).(Air)
+	return ok
+}
+
+func (n Note) BreakInfo() BreakInfo {
+	return newBreakInfo(0.8, alwaysHarvestable, axeEffective, oneOf(Note{}))
+}
+
+func (Note) FuelInfo() item.FuelInfo {
+	return newFuelInfo(time.Second * 15)
+}
+
+func (n Note) EncodeItem() (name string, meta int16) {
+	return "minecraft:noteblock", 0
+}
+
+func (n Note) EncodeBlock() (name string, properties map[string]any) {
+	return "minecraft:noteblock", nil
+}

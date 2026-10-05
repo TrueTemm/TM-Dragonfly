@@ -1,0 +1,318 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package session
+
+import (
+	"math"
+
+	"github.com/df-mc/dragonfly/server/cmd"
+	"github.com/go-gl/mathgl/mgl64"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
+	"golang.org/x/text/language"
+)
+
+func (s *Session) SendCommandOutput(output *cmd.Output, l language.Tag) {
+	if s == Nop {
+		return
+	}
+	messages := make([]protocol.CommandOutputMessage, 0, output.MessageCount()+output.ErrorCount())
+	for _, message := range output.Messages() {
+		om := protocol.CommandOutputMessage{Success: true, Message: message.String()}
+		if t, ok := message.(translation); ok {
+			om.Message, om.Parameters = t.Resolve(l), t.Params(l)
+		}
+		messages = append(messages, om)
+	}
+	for _, err := range output.Errors() {
+		om := protocol.CommandOutputMessage{Message: err.Error()}
+		if t, ok := err.(translation); ok {
+			om.Message, om.Parameters = t.Resolve(l), t.Params(l)
+		}
+		messages = append(messages, om)
+	}
+
+	s.writePacket(&packet.CommandOutput{
+		CommandOrigin:  s.handlers[packet.IDCommandRequest].(*CommandRequestHandler).origin,
+		OutputType:     packet.CommandOutputTypeAllOutput,
+		SuccessCount:   uint32(output.MessageCount()),
+		OutputMessages: messages,
+	})
+}
+
+type translation interface {
+	Resolve(l language.Tag) string
+	Params(l language.Tag) []string
+}
+
+func BuildAvailableCommands(
+	commands map[string]cmd.Command,
+	src cmd.Source,
+	softEnums map[string]struct{},
+) (*packet.AvailableCommands, map[string]map[int]cmd.Runnable) {
+	m := make(map[string]map[int]cmd.Runnable, len(commands))
+
+	pk := &packet.AvailableCommands{}
+
+	var enums []commandEnum
+	enumIndices := map[string]uint32{}
+
+	var dynamicEnums []commandEnum
+	dynamicEnumIndices := map[string]uint32{}
+
+	suffixIndices := map[string]uint32{}
+
+	for alias, c := range commands {
+		if c.Name() != alias {
+
+			continue
+		}
+
+		if run := c.Runnables(src); len(run) > 0 {
+			m[alias] = run
+		} else {
+			continue
+		}
+
+		params := c.Params(src)
+		overloads := make([]protocol.CommandOverload, len(params))
+
+		aliasesIndex := uint32(math.MaxUint32)
+		if len(c.Aliases()) > 0 {
+			aliasesIndex = uint32(len(enumIndices))
+			enumIndices[c.Name()+"Aliases"] = aliasesIndex
+			enums = append(enums, commandEnum{Type: c.Name() + "Aliases", Options: c.Aliases()})
+		}
+
+		for i, params := range params {
+			for _, paramInfo := range params {
+				t, enum := valueToParamType(paramInfo, src)
+				suffix := paramInfo.Suffix
+
+				opt := byte(0)
+				if suffix != "" {
+					index, ok := suffixIndices[suffix]
+					if !ok {
+						index = uint32(len(pk.Suffixes))
+						suffixIndices[suffix] = index
+						pk.Suffixes = append(pk.Suffixes, suffix)
+					}
+					t = protocol.CommandArgSuffixed | index
+				} else {
+					t |= protocol.CommandArgValid
+					if len(enum.Options) > 0 || enum.Type != "" {
+						_, dynamic := softEnums[enum.Type]
+						if !dynamic {
+							index, ok := enumIndices[enum.Type]
+							if !ok {
+								index = uint32(len(enums))
+								enumIndices[enum.Type] = index
+								enums = append(enums, enum)
+							}
+							t |= protocol.CommandArgEnum | index
+						} else {
+							index, ok := dynamicEnumIndices[enum.Type]
+							if !ok {
+								index = uint32(len(dynamicEnums))
+								dynamicEnumIndices[enum.Type] = index
+								dynamicEnums = append(dynamicEnums, enum)
+							}
+							t |= protocol.CommandArgSoftEnum | index
+						}
+					}
+				}
+				overloads[i].Parameters = append(overloads[i].Parameters, protocol.CommandParameter{
+					Name:     paramInfo.Name,
+					Type:     t,
+					Optional: paramInfo.Optional,
+					Options:  opt,
+				})
+			}
+		}
+		pk.Commands = append(pk.Commands, protocol.Command{
+			Name:            c.Name(),
+			Description:     c.Description(),
+			AliasesOffset:   aliasesIndex,
+			PermissionLevel: protocol.CommandPermissionLevelAny,
+			Overloads:       overloads,
+		})
+	}
+
+	pk.DynamicEnums = make([]protocol.DynamicEnum, 0, len(dynamicEnums))
+	for _, e := range dynamicEnums {
+		pk.DynamicEnums = append(pk.DynamicEnums, protocol.DynamicEnum{Type: e.Type, Values: e.Options})
+	}
+
+	enumValueIndices := make(map[string]uint32, len(enums)*3)
+	pk.EnumValues = make([]string, 0, len(enumValueIndices))
+
+	pk.Enums = make([]protocol.CommandEnum, 0, len(enums))
+	for _, enum := range enums {
+		protoEnum := protocol.CommandEnum{Type: enum.Type}
+		for _, opt := range enum.Options {
+			index, ok := enumValueIndices[opt]
+			if !ok {
+				index = uint32(len(pk.EnumValues))
+				enumValueIndices[opt] = index
+				pk.EnumValues = append(pk.EnumValues, opt)
+			}
+			protoEnum.ValueIndices = append(protoEnum.ValueIndices, index)
+		}
+		pk.Enums = append(pk.Enums, protoEnum)
+	}
+	return pk, m
+}
+
+func (s *Session) sendAvailableCommands(co Controllable, softEnums map[string]struct{}) map[string]map[int]cmd.Runnable {
+	commands := cmd.Commands()
+	pk, m := BuildAvailableCommands(commands, co, softEnums)
+	s.writePacket(pk)
+	return m
+}
+
+type commandEnum struct {
+	Type    string
+	Options []string
+}
+
+func valueToParamType(i cmd.ParamInfo, source cmd.Source) (t uint32, enum commandEnum) {
+	switch i.Value.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return protocol.CommandArgTypeInt, enum
+	case float32, float64:
+		return protocol.CommandArgTypeFloat, enum
+	case string:
+		return protocol.CommandArgTypeString, enum
+	case cmd.Varargs:
+		return protocol.CommandArgTypeRawText, enum
+	case cmd.Target, []cmd.Target:
+		return protocol.CommandArgTypeTarget, enum
+	case bool:
+		return 0, commandEnum{
+			Type:    "Boolean",
+			Options: []string{"true", "false"},
+		}
+	case mgl64.Vec3:
+		return protocol.CommandArgTypePosition, enum
+	case cmd.SubCommand:
+		return 0, commandEnum{
+			Type:    "SubCommand" + i.Name,
+			Options: []string{i.Name},
+		}
+	}
+	if enum, ok := i.Value.(cmd.Enum); ok {
+		return 0, commandEnum{
+			Type:    enum.Type(),
+			Options: enum.Options(source),
+		}
+	}
+	return protocol.CommandArgTypeRValue, enum
+}
+
+func (s *Session) resendCommands(
+	before map[string]map[int]cmd.Runnable,
+	co Controllable,
+	softEnums map[string]struct{},
+) (map[string]map[int]cmd.Runnable, bool) {
+	commands := cmd.Commands()
+	m := make(map[string]map[int]cmd.Runnable, len(commands))
+
+	for alias, c := range commands {
+		if c.Name() == alias {
+			if run := c.Runnables(co); len(run) > 0 {
+				m[alias] = run
+			}
+		}
+	}
+	if len(before) != len(m) {
+		return s.sendAvailableCommands(co, softEnums), true
+	}
+
+	for name, r := range m {
+		for k := range r {
+			if _, ok := before[name][k]; !ok {
+				return s.sendAvailableCommands(co, softEnums), true
+			}
+		}
+	}
+
+	for name, r := range before {
+		for k := range r {
+			if _, ok := m[name][k]; !ok {
+				return s.sendAvailableCommands(co, softEnums), true
+			}
+		}
+	}
+	return m, false
+}
+
+func (s *Session) enums(co Controllable) (map[string]cmd.Enum, map[string][]string) {
+	enums, enumValues := make(map[string]cmd.Enum), make(map[string][]string)
+	for alias, c := range cmd.Commands() {
+		if c.Name() == alias {
+			for _, params := range c.Params(co) {
+				for _, paramInfo := range params {
+					if enum, ok := paramInfo.Value.(cmd.Enum); ok {
+						enums[enum.Type()] = enum
+						enumValues[enum.Type()] = enum.Options(co)
+					}
+				}
+			}
+		}
+	}
+	return enums, enumValues
+}
+
+func (s *Session) resendEnums(
+	enums map[string]cmd.Enum,
+	before map[string][]string,
+	softEnums map[string]struct{},
+	r map[string]map[int]cmd.Runnable,
+	c Controllable,
+) map[string]map[int]cmd.Runnable {
+	for name, enum := range enums {
+		valuesBefore := before[name]
+		values := enum.Options(c)
+		before[name] = values
+
+		changed := false
+		if len(valuesBefore) != len(values) {
+			changed = true
+		} else {
+			for k, v := range values {
+				if valuesBefore[k] != v {
+					changed = true
+					break
+				}
+			}
+		}
+		if !changed {
+			continue
+		}
+
+		if _, dynamic := softEnums[name]; dynamic {
+			s.writePacket(&packet.UpdateSoftEnum{EnumType: name, Options: values, ActionType: packet.SoftEnumActionSet})
+		} else {
+			softEnums[name] = struct{}{}
+			r = s.sendAvailableCommands(c, softEnums)
+		}
+	}
+	return r
+}

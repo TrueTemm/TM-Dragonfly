@@ -1,0 +1,102 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package item
+
+import (
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/df-mc/dragonfly/server/world/sound"
+	"github.com/go-gl/mathgl/mgl64"
+	"math/rand/v2"
+	"time"
+)
+
+type Firework struct {
+	Duration time.Duration
+
+	Explosions []FireworkExplosion
+}
+
+func (f Firework) Use(tx *world.Tx, user User, ctx *UseContext) bool {
+	if g, ok := user.(interface {
+		Gliding() bool
+	}); !ok || !g.Gliding() {
+		return false
+	}
+
+	pos := user.Position()
+
+	tx.PlaySound(pos, sound.FireworkLaunch{})
+	create := tx.World().EntityRegistry().Config().Firework
+	opts := world.EntitySpawnOpts{Position: pos, Rotation: user.Rotation()}
+	tx.AddEntity(create(opts, f, user, 1.15, 0.04, true))
+
+	ctx.SubtractFromCount(1)
+	return true
+}
+
+func (f Firework) UseOnBlock(pos cube.Pos, _ cube.Face, clickPos mgl64.Vec3, tx *world.Tx, user User, ctx *UseContext) bool {
+	fpos := pos.Vec3().Add(clickPos)
+	create := tx.World().EntityRegistry().Config().Firework
+	opts := world.EntitySpawnOpts{Position: fpos, Rotation: cube.Rotation{rand.Float64() * 360, 90}}
+	tx.AddEntity(create(opts, f, user, 1.15, 0.04, false))
+	tx.PlaySound(fpos, sound.FireworkLaunch{})
+
+	ctx.SubtractFromCount(1)
+	return true
+}
+
+func (f Firework) EncodeNBT() map[string]any {
+	explosions := make([]any, 0, len(f.Explosions))
+	for _, explosion := range f.Explosions {
+		explosions = append(explosions, explosion.EncodeNBT())
+	}
+	return map[string]any{"Fireworks": map[string]any{
+		"Explosions": explosions,
+		"Flight":     uint8((f.Duration/10 - time.Millisecond*50).Milliseconds() / 50),
+	}}
+}
+
+func (f Firework) DecodeNBT(data map[string]any) any {
+	if fireworks, ok := data["Fireworks"].(map[string]any); ok {
+		if explosions, ok := fireworks["Explosions"].([]any); ok {
+			f.Explosions = make([]FireworkExplosion, len(explosions))
+			for i, explosion := range f.Explosions {
+				f.Explosions[i] = explosion.DecodeNBT(explosions[i].(map[string]any)).(FireworkExplosion)
+			}
+		}
+		if durationTicks, ok := fireworks["Flight"].(uint8); ok {
+			f.Duration = (time.Duration(durationTicks)*time.Millisecond*50 + time.Millisecond*50) * 10
+		}
+	}
+	return f
+}
+
+func (f Firework) RandomisedDuration() time.Duration {
+	return f.Duration + time.Duration(rand.IntN(int(time.Millisecond*600)))
+}
+
+func (Firework) OffHand() bool {
+	return true
+}
+
+func (Firework) EncodeItem() (name string, meta int16) {
+	return "minecraft:firework_rocket", 0
+}

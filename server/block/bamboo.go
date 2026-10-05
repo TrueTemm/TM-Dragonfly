@@ -1,0 +1,203 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package block
+
+import (
+	"math"
+	"math/rand/v2"
+	"time"
+
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/block/model"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/world"
+	"github.com/go-gl/mathgl/mgl64"
+)
+
+type Bamboo struct {
+	transparent
+	bass
+
+	Ready    bool
+	Thick    bool
+	LeafSize BambooLeafSize
+}
+
+var (
+	_ item.BoneMealAffected = Bamboo{}
+	_ Flammable             = Bamboo{}
+)
+
+func (b Bamboo) FuelInfo() item.FuelInfo {
+	return newFuelInfo(time.Millisecond * 2500)
+}
+
+func (b Bamboo) EncodeItem() (name string, meta int16) {
+	return "minecraft:bamboo", 0
+}
+
+func (b Bamboo) BoneMeal(pos cube.Pos, tx *world.Tx) item.BoneMealResult {
+	top := b.top(pos, tx)
+	if tx.Block(top).(Bamboo).grow(top, rand.IntN(2)+1, b.maxHeight(top), tx) {
+		return item.BoneMealResultSmall
+	}
+	return item.BoneMealResultNone
+}
+
+func (b Bamboo) FlammabilityInfo() FlammabilityInfo {
+	return newFlammabilityInfo(60, 60, true)
+}
+
+func (b Bamboo) BreakInfo() BreakInfo {
+	return newBreakInfo(1, alwaysHarvestable, axeEffective, oneOf(b))
+}
+
+func (b Bamboo) EncodeBlock() (string, map[string]any) {
+	thickness := "thin"
+	if b.Thick {
+		thickness = "thick"
+	}
+	return "minecraft:bamboo", map[string]any{
+		"age_bit":                boolByte(b.Ready),
+		"bamboo_leaf_size":       b.LeafSize.String(),
+		"bamboo_stalk_thickness": thickness,
+	}
+}
+
+func (b Bamboo) Model() world.BlockModel {
+	return model.Bamboo{Thick: b.Thick}
+}
+
+func (b Bamboo) RandomTick(pos cube.Pos, tx *world.Tx, r *rand.Rand) {
+	if tx.Light(pos) >= 9 && r.IntN(3) == 0 {
+		b.grow(pos, 1, b.maxHeight(pos), tx)
+	}
+}
+
+func (b Bamboo) NeighbourUpdateTick(pos, _ cube.Pos, tx *world.Tx) {
+	down := tx.Block(pos.Side(cube.FaceDown))
+	switch down.(type) {
+	case BambooSapling, Bamboo:
+		return
+	}
+	if supportsVegetation(b, down) {
+		return
+	}
+	breakBlock(b, pos, tx)
+}
+
+func (b Bamboo) UseOnBlock(pos cube.Pos, face cube.Face, _ mgl64.Vec3, tx *world.Tx, user item.User, ctx *item.UseContext) bool {
+	if face == cube.FaceUp {
+		switch x := tx.Block(pos).(type) {
+		case Bamboo:
+			if x.top(pos, tx) != pos {
+				return false
+			}
+			return b.grow(pos, 1, math.MaxInt, tx)
+		case BambooSapling:
+			return x.grow(pos, tx)
+		default:
+		}
+	}
+
+	pos, _, used := firstReplaceable(tx, pos, face, b)
+	if !used {
+		return false
+	}
+	s := BambooSapling{}
+	if !supportsVegetation(s, tx.Block(pos.Sub(cube.Pos{0, 1}))) {
+		return false
+	}
+	place(tx, pos, s, user, ctx)
+	return placed(ctx)
+}
+
+func (b Bamboo) maxHeight(pos cube.Pos) int {
+	seed := 3129871*uint32(pos.X()) ^ 116129781*uint32(pos.Z())
+	seed *= 42317861*seed + 11
+	return 12 + int(seed>>24)%5
+}
+
+func (b Bamboo) top(pos cube.Pos, tx *world.Tx) (top cube.Pos) {
+	top = pos
+	for {
+		up := top.Side(cube.FaceUp)
+		if _, ok := tx.Block(up).(Bamboo); !ok {
+			return top
+		}
+		top = up
+	}
+}
+
+func (b Bamboo) grow(pos cube.Pos, amount int, maxHeight int, tx *world.Tx) bool {
+	if !replaceableWith(tx, pos.Side(cube.FaceUp), b) {
+		return false
+	}
+
+	height := 1
+	for {
+		if _, ok := tx.Block(pos.Sub(cube.Pos{0, height})).(Bamboo); !ok {
+			break
+		}
+		height++
+		if height >= maxHeight {
+			return false
+		}
+	}
+
+	for i, block := range b.growthLayout(height+amount, amount) {
+		tx.SetBlock(pos.Sub(cube.Pos{0, i - amount}), block, nil)
+	}
+
+	return true
+}
+
+func (b Bamboo) growthLayout(newHeight, amount int) []world.Block {
+	stemBlock := Bamboo{Thick: b.Thick || newHeight >= 4}
+	smallLeavesBlock := Bamboo{Thick: stemBlock.Thick, LeafSize: BambooSizeSmallLeaves()}
+	bigLeavesBlock := Bamboo{Thick: stemBlock.Thick, LeafSize: BambooSizeLargeLeaves()}
+
+	switch {
+	case newHeight == 2:
+		return []world.Block{smallLeavesBlock}
+	case newHeight == 3:
+		return []world.Block{smallLeavesBlock, smallLeavesBlock}
+	case newHeight == 4:
+		return []world.Block{bigLeavesBlock, smallLeavesBlock, stemBlock, stemBlock}
+	case newHeight > 4:
+		newBlocks := []world.Block{bigLeavesBlock, bigLeavesBlock, smallLeavesBlock}
+		for i, mx := 0, min(amount, newHeight-len(newBlocks)); i < mx; i++ {
+			newBlocks = append(newBlocks, stemBlock)
+		}
+		return newBlocks
+	}
+	return nil
+}
+
+func allBamboos() (bamboos []world.Block) {
+	for _, thick := range []bool{false, true} {
+		for _, ready := range []bool{false, true} {
+			for _, leafSize := range BambooLeafSizes() {
+				bamboos = append(bamboos, Bamboo{Thick: thick, Ready: ready, LeafSize: leafSize})
+			}
+		}
+	}
+	return
+}

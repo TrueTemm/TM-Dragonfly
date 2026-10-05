@@ -1,0 +1,75 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
+package entity
+
+import (
+	"github.com/df-mc/dragonfly/server/block/cube"
+	"github.com/df-mc/dragonfly/server/item"
+	"github.com/df-mc/dragonfly/server/world"
+)
+
+func NewFirework(opts world.EntitySpawnOpts, firework item.Firework) *world.EntityHandle {
+	return newFirework(opts, firework, nil, 1.15, 0.04, false)
+}
+
+func NewFireworkAttached(opts world.EntitySpawnOpts, firework item.Firework, owner world.Entity) *world.EntityHandle {
+	return newFirework(opts, firework, owner, 0, 0, true)
+}
+
+func newFirework(opts world.EntitySpawnOpts, firework item.Firework, owner world.Entity, sidewaysVelocityMultiplier, upwardsAcceleration float64, attached bool) *world.EntityHandle {
+	conf := fireworkConf
+	conf.SidewaysVelocityMultiplier = sidewaysVelocityMultiplier
+	conf.UpwardsAcceleration = upwardsAcceleration
+	conf.Firework = firework
+	conf.ExistenceDuration = firework.RandomisedDuration()
+	conf.Attached = attached
+	if attached {
+		conf.Owner = owner.H()
+	}
+	return opts.New(FireworkType, conf)
+}
+
+var fireworkConf = FireworkBehaviourConfig{}
+
+var FireworkType fireworkType
+
+type fireworkType struct{}
+
+func (t fireworkType) Open(tx *world.Tx, handle *world.EntityHandle, data *world.EntityData) world.Entity {
+	return &Ent{tx: tx, handle: handle, data: data}
+}
+
+func (fireworkType) EncodeEntity() string        { return "minecraft:fireworks_rocket" }
+func (fireworkType) BBox(world.Entity) cube.BBox { return cube.BBox{} }
+
+func (fireworkType) DecodeNBT(m map[string]any, data *world.EntityData) {
+	conf := fireworkConf
+
+	if fw, ok := item.MapNBT(m, "Item").Item().(item.Firework); ok {
+		conf.Firework = fw
+	}
+	conf.ExistenceDuration = conf.Firework.RandomisedDuration()
+
+	data.Data = conf.New()
+}
+
+func (fireworkType) EncodeNBT(data *world.EntityData) map[string]any {
+	return map[string]any{"Item": item.WriteNBT(item.NewStack(data.Data.(*FireworkBehaviour).Firework(), 1), true)}
+}
