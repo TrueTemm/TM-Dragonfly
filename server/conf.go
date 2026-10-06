@@ -72,6 +72,8 @@ type Config struct {
 
 	MaxChunkRadius int
 
+	Difficulty world.Difficulty
+
 	JoinMessage, QuitMessage, ShutdownMessage chat.Translation
 
 	StatusProvider minecraft.ServerStatusProvider
@@ -176,6 +178,9 @@ func (conf Config) New() *Server {
 	srv.world = srv.newWorld(conf.WorldProvider, MainWorldName, conf.Generator(world.Overworld), false)
 	srv.wm.worlds = map[string]*world.World{MainWorldName: srv.world}
 	srv.conf.Log.Info("Opened world.", "name", srv.world.Name())
+	if conf.Difficulty != nil {
+		srv.world.SetDifficulty(conf.Difficulty)
+	}
 
 	return srv
 }
@@ -211,6 +216,8 @@ type UserConfig struct {
 		RandomTickSpeed int
 
 		Generator string
+
+		Difficulty string
 	}
 	Players struct {
 		MaxCount int
@@ -299,11 +306,26 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 	conf.Generator = worldGenerator(uc.World.Generator)
 	if conf.MaxChunkRadius > maxRenderChunks {
 		conf.MaxChunkRadius = maxRenderChunks // render distance safety cap
-	} else if conf.MaxChunkRadius < 2 {
-		conf.MaxChunkRadius = 2
+	}
+	if d, ok := difficultyByName(uc.World.Difficulty); ok {
+		conf.Difficulty = d
 	}
 	conf.Listeners = append(conf.Listeners, uc.listenerFunc)
 	return conf, nil
+}
+
+func difficultyByName(name string) (world.Difficulty, bool) {
+	switch name {
+	case "peaceful", "0":
+		return world.DifficultyPeaceful, true
+	case "easy", "1":
+		return world.DifficultyEasy, true
+	case "normal", "2", "":
+		return world.DifficultyNormal, true
+	case "hard", "3":
+		return world.DifficultyHard, true
+	}
+	return nil, false
 }
 
 const maxRenderChunks = 16
@@ -394,6 +416,7 @@ func DefaultConfig() UserConfig {
 	c.World.DefaultGameMode = "survival"
 	c.World.RandomTickSpeed = 0
 	c.World.Generator = "flat" // "flat" or "current" for the loaded world untouched
+	c.World.Difficulty = "normal"
 
 	c.Players.MaximumChunkRadius = 10
 	c.Players.SaveData = true
