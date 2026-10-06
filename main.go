@@ -100,6 +100,8 @@ func startConsoleReader(log *slog.Logger, srv *server.Server, startedAt time.Tim
 				printStatus(srv, startedAt)
 			case line == "version":
 				printVersion()
+			case line == "about":
+				printAbout()
 			case line == "stop":
 				log.Info("Stopping the server.")
 				if err := srv.Close(); err != nil {
@@ -126,11 +128,18 @@ func printHelp() {
 		{"list", "online players and their versions"},
 		{"status", "uptime, TPS, load and memory"},
 		{"version", "server build and supported versions"},
+		{"about", "core name, author and version range"},
 		{"say <message>", "broadcast a message to everyone"},
 		{"stop", "shut the server down"},
 	} {
 		fmt.Printf("  %s%-16s%s %s\n", cLime, c[0], cReset, c[1])
 	}
+}
+
+func printAbout() {
+	fmt.Printf("%s%sTM-Dragonfly%s — multiversion Bedrock server by %sTrueTemm%s\n", cBold, cLime, cReset, cGray, cReset)
+	fmt.Printf("  Bedrock 1.21.0 … 1.26.50 on a single listener\n")
+	printVersion()
 }
 
 func printList(srv *server.Server) {
