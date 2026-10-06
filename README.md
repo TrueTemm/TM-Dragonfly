@@ -27,6 +27,7 @@ library you build your own game on top of.
 - **Native latest version** — newest client runs with zero translation overhead.
 - **Clean console** — light-green themed logs and a handful of built-in commands.
 - **Full Dragonfly API** — worlds, entities, inventories, blocks and items, all unchanged.
+- **Protected resource packs** — drop a pack in `resources/` and it is served encrypted; the copy a client caches on disk is unreadable.
 - **No forks** — plain, official gophertunnel and go-raknet; nothing vendored.
 
 ## Getting started
@@ -58,6 +59,17 @@ go build -o tm-dragonfly .
 | `version`       | build info and the supported version range        |
 | `say <message>` | broadcast a message to everyone                   |
 | `stop`          | shut the server down                              |
+
+## Protected resource packs
+
+Drop a resource pack — a folder, a `.mcpack` or a `.zip` — into `resources/` and TM-Dragonfly
+encrypts it the way Minecraft itself does (Content Key Encryption) the first time it starts. Players
+still get the pack in game, but the copy left in their `com.mojang` cache is pure noise: every
+texture, sound and model is AES-encrypted, and the key is only ever sent to the client over the
+wire. `manifest.json` and the pack icon stay readable, as the client needs them first.
+
+Encrypted copies and their keys are kept in `resources/.secured/`; change the source pack and it is
+re-encrypted on the next start.
 
 ## Developer info
 

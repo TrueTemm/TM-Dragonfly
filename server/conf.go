@@ -33,6 +33,7 @@ import (
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/internal/packbuilder"
+	"github.com/df-mc/dragonfly/server/internal/packsecure"
 	"github.com/df-mc/dragonfly/server/player"
 	"github.com/df-mc/dragonfly/server/player/chat"
 	"github.com/df-mc/dragonfly/server/player/playerdb"
@@ -298,27 +299,9 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 }
 
 func loadResources(dir string) ([]*resource.Pack, error) {
-	_ = os.MkdirAll(dir, 0777)
-
-	resources, err := os.ReadDir(dir)
+	packs, err := packsecure.Load(dir)
 	if err != nil {
-		return nil, fmt.Errorf("read dir: %w", err)
-	}
-	packs := make([]*resource.Pack, 0, len(resources))
-	for _, entry := range resources {
-		name := entry.Name()
-		if !entry.IsDir() {
-			switch strings.ToLower(filepath.Ext(name)) {
-			case ".mcpack", ".zip":
-			default:
-				continue
-			}
-		}
-		pack, err := resource.ReadPath(filepath.Join(dir, name))
-		if err != nil {
-			return nil, fmt.Errorf("compile resource (%v): %w", name, err)
-		}
-		packs = append(packs, pack)
+		return nil, err
 	}
 	return newestOfEach(packs), nil
 }

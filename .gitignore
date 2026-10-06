@@ -25,3 +25,5 @@ tm-dragonfly.exe
 *.test
 *.out
 *.prof
+releases/
+release-notes.md
