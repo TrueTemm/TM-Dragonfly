@@ -74,6 +74,8 @@ type Config struct {
 
 	Difficulty world.Difficulty
 
+	SpawnProtection int
+
 	JoinMessage, QuitMessage, ShutdownMessage chat.Translation
 
 	StatusProvider minecraft.ServerStatusProvider
@@ -218,6 +220,8 @@ type UserConfig struct {
 		Generator string
 
 		Difficulty string
+
+		SpawnProtection int
 	}
 	Players struct {
 		MaxCount int
@@ -310,6 +314,7 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 	if d, ok := difficultyByName(uc.World.Difficulty); ok {
 		conf.Difficulty = d
 	}
+	conf.SpawnProtection = uc.World.SpawnProtection
 	conf.Listeners = append(conf.Listeners, uc.listenerFunc)
 	return conf, nil
 }
@@ -417,6 +422,7 @@ func DefaultConfig() UserConfig {
 	c.World.RandomTickSpeed = 0
 	c.World.Generator = "flat" // "flat" or "current" for the loaded world untouched
 	c.World.Difficulty = "normal"
+	c.World.SpawnProtection = 16
 
 	c.Players.MaximumChunkRadius = 10
 	c.Players.SaveData = true
