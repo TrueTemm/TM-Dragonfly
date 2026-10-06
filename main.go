@@ -28,6 +28,7 @@ import (
 	"os"
 	"runtime/debug"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -67,7 +68,9 @@ func main() {
 
 	srv := conf.New()
 	srv.CloseOnProgramEnd()
-	startConsoleReader(log, srv, time.Now())
+	operators := loadOps("ops.yml")
+	registerCommands(operators)
+	startConsoleReader(log, srv, operators, time.Now())
 
 	srv.Listen()
 	log.Info(cLime + "Server is up — clients 1.21.0 … 1.26.50 welcome." + cReset)
@@ -78,7 +81,7 @@ func main() {
 	}
 }
 
-func startConsoleReader(log *slog.Logger, srv *server.Server, startedAt time.Time) {
+func startConsoleReader(log *slog.Logger, srv *server.Server, operators *ops, startedAt time.Time) {
 	go func() {
 		sc := bufio.NewScanner(os.Stdin)
 		sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
@@ -92,7 +95,7 @@ func startConsoleReader(log *slog.Logger, srv *server.Server, startedAt time.Tim
 				printHelp()
 			case strings.HasPrefix(line, "say "):
 				if msg := strings.TrimSpace(line[4:]); msg != "" {
-					_, _ = chat.Global.WriteString("§e[Server] §r" + msg + "§r")
+					_, _ = chat.Global.WriteString("§a[Server] §r" + msg + "§r")
 				}
 			case line == "list":
 				printList(srv)
@@ -102,6 +105,20 @@ func startConsoleReader(log *slog.Logger, srv *server.Server, startedAt time.Tim
 				printVersion()
 			case line == "about":
 				printAbout()
+			case strings.HasPrefix(line, "weather "):
+				setWeather(srv, strings.TrimSpace(line[len("weather "):]))
+			case strings.HasPrefix(line, "time "):
+				setTime(srv, strings.TrimSpace(line[len("time "):]))
+			case strings.HasPrefix(line, "op "):
+				if nick := strings.TrimSpace(line[3:]); nick != "" {
+					operators.add(nick)
+					fmt.Println(nick, "is now an operator")
+				}
+			case strings.HasPrefix(line, "deop "):
+				if nick := strings.TrimSpace(line[5:]); nick != "" {
+					operators.remove(nick)
+					fmt.Println(nick, "is no longer an operator")
+				}
 			case line == "stop":
 				log.Info("Stopping the server.")
 				if err := srv.Close(); err != nil {
@@ -129,6 +146,10 @@ func printHelp() {
 		{"status", "uptime, TPS, load and memory"},
 		{"version", "server build and supported versions"},
 		{"about", "core name, author and version range"},
+		{"weather <type>", "clear, rain or thunder"},
+		{"time set <t>", "day, noon, night, midnight or ticks"},
+		{"op <nick>", "grant operator (in-game: weather, time, gm, tp)"},
+		{"deop <nick>", "revoke operator"},
 		{"say <message>", "broadcast a message to everyone"},
 		{"stop", "shut the server down"},
 	} {
@@ -140,6 +161,51 @@ func printAbout() {
 	fmt.Printf("%s%sTM-Dragonfly%s — multiversion Bedrock server by %sTrueTemm%s\n", cBold, cLime, cReset, cGray, cReset)
 	fmt.Printf("  Bedrock 1.21.0 … 1.26.50 on a single listener\n")
 	printVersion()
+}
+
+func setWeather(srv *server.Server, arg string) {
+	w := srv.World()
+	switch arg {
+	case "clear", "sun":
+		w.StopThundering()
+		w.StopRaining()
+	case "rain":
+		w.StartRaining(time.Hour)
+	case "thunder", "storm":
+		w.StartThundering(time.Hour)
+	default:
+		fmt.Println("usage: weather <clear|rain|thunder>")
+		return
+	}
+	fmt.Println("weather set to", arg)
+}
+
+func setTime(srv *server.Server, arg string) {
+	arg = strings.TrimPrefix(arg, "set ") // allow "time set day"
+	t, ok := parseTicks(arg)
+	if !ok {
+		fmt.Println("usage: time set <day|noon|night|midnight|ticks>")
+		return
+	}
+	srv.World().SetTime(t)
+	fmt.Println("time set to", arg)
+}
+
+func parseTicks(s string) (int, bool) {
+	switch s {
+	case "day":
+		return 1000, true
+	case "noon":
+		return 6000, true
+	case "night":
+		return 13000, true
+	case "midnight":
+		return 18000, true
+	}
+	if n, err := strconv.Atoi(s); err == nil {
+		return n, true
+	}
+	return 0, false
 }
 
 func printList(srv *server.Server) {
