@@ -69,15 +69,16 @@ func main() {
 	srv := conf.New()
 	srv.CloseOnProgramEnd()
 	operators := loadOps("ops.yml")
-	registerCommands(operators)
+	registerCommands(srv, operators)
 	startConsoleReader(log, srv, operators, time.Now())
 
 	srv.Listen()
 	log.Info(cLime + "Server is up — clients 1.21.0 … 1.26.50 welcome." + cReset)
 	log.Info(cGray + "Type 'help' for the console commands." + cReset)
+	spawn := srv.World().Spawn()
 	for p := range srv.Accept() {
 		log.Info("Player joined", "name", p.Name(), "version", p.GameVersion())
-		_ = p
+		p.Handle(spawnProtect{o: operators, name: p.Name(), spawn: spawn, radius: conf.SpawnProtection}) // spawn protection for non-ops
 	}
 }
 
