@@ -112,8 +112,8 @@ func startConsoleReader(log *slog.Logger, srv *server.Server, operators *ops, st
 				setTime(srv, strings.TrimSpace(line[len("time "):]))
 			case strings.HasPrefix(line, "op "):
 				if nick := strings.TrimSpace(line[3:]); nick != "" {
-					operators.add(nick)
-					fmt.Println(nick, "is now an operator")
+					display := grantOp(srv, operators, nil, nick) // full nick + notify in-game
+					fmt.Println(display, "is now an operator")
 				}
 			case strings.HasPrefix(line, "deop "):
 				if nick := strings.TrimSpace(line[5:]); nick != "" {

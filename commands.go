@@ -35,7 +35,7 @@ func registerCommands(srv *server.Server, o *ops) {
 	cmd.Register(cmd.New("time", "set the time of day", nil, timeCmd{o: o}))
 	cmd.Register(cmd.New("gamemode", "change a game mode", []string{"gm"}, gmCmd{o: o, srv: srv}))
 	cmd.Register(cmd.New("tp", "teleport to a player", nil, tpCmd{o: o, srv: srv}))
-	cmd.Register(cmd.New("op", "grant operator", nil, opCmd{o: o}))
+	cmd.Register(cmd.New("op", "grant operator", nil, opCmd{o: o, srv: srv}))
 	cmd.Register(cmd.New("deop", "revoke operator", nil, deopCmd{o: o}))
 }
 
@@ -152,14 +152,28 @@ func (c tpCmd) Run(src cmd.Source, out *cmd.Output, tx *world.Tx) {
 
 type opCmd struct {
 	o      *ops
+	srv    *server.Server
 	Target string `cmd:"nick"`
 }
 
 func (c opCmd) Allow(src cmd.Source) bool { return opOnly(c.o, src) }
 
-func (c opCmd) Run(_ cmd.Source, out *cmd.Output, _ *world.Tx) {
-	c.o.add(c.Target)
-	out.Printf("%s is now an operator", c.Target)
+func (c opCmd) Run(_ cmd.Source, out *cmd.Output, tx *world.Tx) {
+	display := grantOp(c.srv, c.o, tx, c.Target)
+	out.Printf("%s is now an operator", display)
+}
+
+func grantOp(srv *server.Server, o *ops, tx *world.Tx, name string) string {
+	display := name
+	for p := range srv.Players(tx) {
+		if strings.EqualFold(p.Name(), name) {
+			display = p.Name() // real nick, right case
+			p.Message("§aYou have been granted operator rights.")
+			break
+		}
+	}
+	o.add(display)
+	return display
 }
 
 type deopCmd struct {
