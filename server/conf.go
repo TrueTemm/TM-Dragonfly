@@ -209,6 +209,8 @@ type UserConfig struct {
 		DefaultGameMode string
 
 		RandomTickSpeed int
+
+		Generator string
 	}
 	Players struct {
 		MaxCount int
@@ -294,8 +296,23 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 			return conf, fmt.Errorf("create player provider: %w", err)
 		}
 	}
+	conf.Generator = worldGenerator(uc.World.Generator)
+	if conf.MaxChunkRadius > maxRenderChunks {
+		conf.MaxChunkRadius = maxRenderChunks // render distance safety cap
+	} else if conf.MaxChunkRadius < 2 {
+		conf.MaxChunkRadius = 2
+	}
 	conf.Listeners = append(conf.Listeners, uc.listenerFunc)
 	return conf, nil
+}
+
+const maxRenderChunks = 16
+
+func worldGenerator(mode string) func(world.Dimension) world.Generator {
+	if mode == "current" || mode == "loaded" {
+		return func(world.Dimension) world.Generator { return world.NopGenerator{} } // loaded world as-is
+	}
+	return loadGenerator
 }
 
 func loadResources(dir string) ([]*resource.Pack, error) {
@@ -376,6 +393,7 @@ func DefaultConfig() UserConfig {
 	c.World.FallDamage = false
 	c.World.DefaultGameMode = "survival"
 	c.World.RandomTickSpeed = 0
+	c.World.Generator = "flat" // "flat" or "current" for the loaded world untouched
 
 	c.Players.MaximumChunkRadius = 10
 	c.Players.SaveData = true
