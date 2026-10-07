@@ -50,7 +50,7 @@ func opOnly(o *ops, src cmd.Source) bool {
 type aboutCmd struct{}
 
 func (aboutCmd) Run(_ cmd.Source, out *cmd.Output, _ *world.Tx) {
-	out.Printf("§aTM-Dragonfly§r by TrueTemm — multiversion Bedrock 1.21.0 … 1.26.50")
+	out.Printf("§aTM-Dragonfly§r by TrueTemm — multiversion Bedrock 1.20.70 … 1.26.50")
 }
 
 type weatherCmd struct {

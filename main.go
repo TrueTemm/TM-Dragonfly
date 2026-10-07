@@ -73,7 +73,7 @@ func main() {
 	startConsoleReader(log, srv, operators, time.Now())
 
 	srv.Listen()
-	log.Info(cLime + "Server is up — clients 1.21.0 … 1.26.50 welcome." + cReset)
+	log.Info(cLime + "Server is up — clients 1.20.70 … 1.26.50 welcome." + cReset)
 	log.Info(cGray + "Type 'help' for the console commands." + cReset)
 	spawn := srv.World().Spawn()
 	for p := range srv.Accept() {
@@ -135,7 +135,7 @@ func startConsoleReader(log *slog.Logger, srv *server.Server, operators *ops, st
 func printStartupBanner() {
 	fmt.Println()
 	fmt.Printf("  %s%sTM-Dragonfly%s  multiversion Bedrock server\n", cBold, cLime, cReset)
-	fmt.Printf("  %ssupported%s Bedrock 1.21.0 … 1.26.50   %sby TrueTemm%s\n", cLime, cReset, cGray, cReset)
+	fmt.Printf("  %ssupported%s Bedrock 1.20.70 … 1.26.50   %sby TrueTemm%s\n", cLime, cReset, cGray, cReset)
 	fmt.Println()
 }
 
@@ -160,7 +160,7 @@ func printHelp() {
 
 func printAbout() {
 	fmt.Printf("%s%sTM-Dragonfly%s — multiversion Bedrock server by %sTrueTemm%s\n", cBold, cLime, cReset, cGray, cReset)
-	fmt.Printf("  Bedrock 1.21.0 … 1.26.50 on a single listener\n")
+	fmt.Printf("  Bedrock 1.20.70 … 1.26.50 on a single listener\n")
 	printVersion()
 }
 
@@ -223,7 +223,7 @@ func printList(srv *server.Server) {
 
 func printVersion() {
 	fmt.Printf("%s%sTM-Dragonfly%s  build %s\n", cBold, cLime, cReset, buildStamp())
-	fmt.Printf("  multiversion: Bedrock %s1.21.0 … 1.26.50%s (native 1.26.50)\n", cLime, cReset)
+	fmt.Printf("  multiversion: Bedrock %s1.20.70 … 1.26.50%s (native 1.26.50)\n", cLime, cReset)
 }
 
 func buildStamp() string {
