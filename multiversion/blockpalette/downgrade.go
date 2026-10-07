@@ -55,6 +55,7 @@ var schemaFiles = []struct {
 func ver(major, minor, patch int) int { return major*1e6 + minor*1e3 + patch }
 
 var statePalettes = map[uint32]*statePalette{
+	671:  {file: 686, version: ver(1, 20, 80)}, // no 1.20 schema, 1.21.0 shapes
 	685:  {file: 686, version: ver(1, 21, 0)},
 	686:  {file: 686, version: ver(1, 21, 2)},
 	712:  {file: 712, version: ver(1, 21, 20)},
