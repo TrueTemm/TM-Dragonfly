@@ -1,1 +1,11 @@
 *.go eol=lf
+
+# keep the GitHub language bar Go-only
+*.sh linguist-vendored
+*.json linguist-generated
+*.nbt linguist-generated
+*.dat linguist-generated
+*.yml linguist-generated
+*.yaml linguist-generated
+*.toml linguist-generated
+*.md linguist-documentation
