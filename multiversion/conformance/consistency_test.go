@@ -45,6 +45,7 @@ func isLatest(pk packet.Packet) bool {
 }
 
 var knownDisagreements = map[int32]map[uint32]bool{
+	671:  {130: true, 131: true, 135: true, 147: true}, // 130/131 swapped at 671
 	685:  {135: true, 147: true},
 	686:  {135: true, 147: true},
 	712:  {135: true, 147: true},

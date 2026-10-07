@@ -31,6 +31,7 @@ import (
 	"github.com/df-mc/dragonfly/multiversion/v1001"
 	"github.com/df-mc/dragonfly/multiversion/v2168"
 	"github.com/df-mc/dragonfly/multiversion/v2169"
+	"github.com/df-mc/dragonfly/multiversion/v671"
 	"github.com/df-mc/dragonfly/multiversion/v685"
 	"github.com/df-mc/dragonfly/multiversion/v686"
 	"github.com/df-mc/dragonfly/multiversion/v712"
@@ -53,7 +54,7 @@ import (
 
 func protocols() []minecraft.Protocol {
 	return []minecraft.Protocol{
-		v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{},
+		v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{},
 		v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, native.Protocol{},
 	}
 }
