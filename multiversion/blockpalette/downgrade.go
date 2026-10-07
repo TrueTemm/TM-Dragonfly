@@ -55,6 +55,7 @@ var schemaFiles = []struct {
 func ver(major, minor, patch int) int { return major*1e6 + minor*1e3 + patch }
 
 var statePalettes = map[uint32]*statePalette{
+	662:  {file: 686, version: ver(1, 20, 70)}, // no 1.20 schema, 1.21.0 shapes
 	671:  {file: 686, version: ver(1, 20, 80)}, // no 1.20 schema, 1.21.0 shapes
 	685:  {file: 686, version: ver(1, 21, 0)},
 	686:  {file: 686, version: ver(1, 21, 2)},
@@ -94,6 +95,11 @@ type statePalette struct {
 }
 
 func HashFor(protocol, rid uint32) uint32 {
+	if isNative(protocol) {
+		if h := nativeStairHash(rid); h != 0 {
+			return h // stairs gained minecraft:corner in 1.26.50
+		}
+	}
 	p, ok := statePalettes[protocol]
 	if !ok {
 		return HashOf(rid)
@@ -106,6 +112,11 @@ func HashFor(protocol, rid uint32) uint32 {
 }
 
 func RuntimeIDFor(protocol, hash uint32) uint32 {
+	if isNative(protocol) {
+		if rid, ok := nativeStairRID(hash); ok {
+			return rid // stairs placed by a 1.26.50 client
+		}
+	}
 	if p, ok := statePalettes[protocol]; ok {
 		p.build()
 		if rid, ok := p.toLatest[hash]; ok {

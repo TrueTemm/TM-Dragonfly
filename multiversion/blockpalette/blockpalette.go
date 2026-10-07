@@ -64,6 +64,7 @@ type palette struct {
 
 var palettes = map[uint32]*palette{
 
+	662: {}, // 1.20.70, hash path
 	671: {}, // 1.20.80, hash path
 	685: {},
 	686: {},
