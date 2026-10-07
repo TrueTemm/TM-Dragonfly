@@ -9,3 +9,5 @@
 *.yaml linguist-generated
 *.toml linguist-generated
 *.md linguist-documentation
+*.gz linguist-generated
+Makefile linguist-vendored
