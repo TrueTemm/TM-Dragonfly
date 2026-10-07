@@ -50,10 +50,16 @@ func (*CorrectPlayerMovePrediction) ID() uint32 {
 }
 
 func (pk *CorrectPlayerMovePrediction) Marshal(io protocol.IO) {
-	io.Uint8(&pk.PredictionType)
+	legacy := false
+	if p := ProtoOf(io); p != 0 && p < 671 {
+		legacy = true // 662 had none of the vehicle fields
+	}
+	if !legacy {
+		io.Uint8(&pk.PredictionType)
+	}
 	io.Vec3(&pk.Position)
 	io.Vec3(&pk.Delta)
-	if pk.PredictionType == PredictionTypeVehicle {
+	if !legacy && pk.PredictionType == PredictionTypeVehicle {
 		io.Vec2(&pk.Rotation)
 		protocol.OptionalFunc(io, &pk.VehicleAngularVelocity, io.Float32)
 	}

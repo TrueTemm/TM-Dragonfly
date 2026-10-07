@@ -173,7 +173,13 @@ func (pk *PlayerAuthInput) Marshal(io protocol.IO) {
 	io.Bitset(&pk.InputData, PlayerAuthInputBitsetSize)
 	io.Varuint32(&pk.InputMode)
 	io.Varuint32(&pk.PlayMode)
-	io.Varuint32(&pk.InteractionModel)
+	if p := ProtoOf(io); p != 0 && p < 671 {
+		v := int32(pk.InteractionModel) // signed below 671
+		io.Varint32(&v)
+		pk.InteractionModel = uint32(v)
+	} else {
+		io.Varuint32(&pk.InteractionModel)
+	}
 	io.Float32(&pk.InteractPitch)
 	io.Float32(&pk.InteractYaw)
 	io.Varuint64(&pk.Tick)

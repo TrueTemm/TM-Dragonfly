@@ -77,7 +77,9 @@ func (pk *StartGame) Marshal(io protocol.IO) {
 	io.Varint32(&pk.Dimension)
 	io.Varint32(&pk.Generator)
 	io.Varint32(&pk.WorldGameMode)
-	io.Bool(&pk.Hardcore)
+	if p := v786.ProtoOf(io); p == 0 || p >= 671 { // added in 671
+		io.Bool(&pk.Hardcore)
+	}
 	io.Varint32(&pk.Difficulty)
 	v786.UBlockPos786(io, &pk.WorldSpawn)
 	io.Bool(&pk.AchievementsDisabled)

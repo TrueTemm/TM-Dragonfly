@@ -67,6 +67,12 @@ func (pk *UpdateBlockSynced) Marshal(io protocol.IO) {
 	io.Varuint32(&pk.NewBlockRuntimeID)
 	io.Varuint32(&pk.Flags)
 	io.Varuint32(&pk.Layer)
-	io.Varuint64(&pk.EntityUniqueID)
+	if p := ProtoOf(io); p != 0 && p < 671 {
+		v := int64(pk.EntityUniqueID) // signed below 671
+		io.Varint64(&v)
+		pk.EntityUniqueID = uint64(v)
+	} else {
+		io.Varuint64(&pk.EntityUniqueID)
+	}
 	io.Varuint64(&pk.TransitionType)
 }

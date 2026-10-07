@@ -21,36 +21,26 @@ package v786
 
 import (
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
-type ResourcePackStack struct {
-	TexturePackRequired bool
-
-	BehaviourPacks []protocol.StackResourcePack
-
-	TexturePacks []protocol.StackResourcePack
-
-	BaseGameVersion string
-
-	Experiments []protocol.ExperimentData
-
-	ExperimentsPreviouslyToggled bool
-
-	IncludeEditorPacks bool
+type UpdatePlayerGameType struct {
+	GameType       int32
+	PlayerUniqueID int64
+	Tick           uint64
 }
 
-func (*ResourcePackStack) ID() uint32 {
-	return IDResourcePackStack
-}
-
-func (pk *ResourcePackStack) Marshal(io protocol.IO) {
-	io.Bool(&pk.TexturePackRequired)
-	protocol.Slice(io, &pk.BehaviourPacks)
-	protocol.Slice(io, &pk.TexturePacks)
-	io.String(&pk.BaseGameVersion)
-	protocol.SliceUint32Length(io, &pk.Experiments)
-	io.Bool(&pk.ExperimentsPreviouslyToggled)
+func (*UpdatePlayerGameType) ID() uint32 { return IDUpdatePlayerGameType }
+func (pk *UpdatePlayerGameType) Marshal(io protocol.IO) {
+	io.Varint32(&pk.GameType)
+	io.Varint64(&pk.PlayerUniqueID)
 	if p := ProtoOf(io); p == 0 || p >= 671 { // added in 671
-		io.Bool(&pk.IncludeEditorPacks)
+		io.Varuint64(&pk.Tick)
 	}
+}
+func toLatestUpdatePlayerGameType(pk *UpdatePlayerGameType) *packet.UpdatePlayerGameType {
+	return &packet.UpdatePlayerGameType{GameType: pk.GameType, PlayerUniqueID: pk.PlayerUniqueID, Tick: pk.Tick}
+}
+func fromLatestUpdatePlayerGameType(pk *packet.UpdatePlayerGameType) *UpdatePlayerGameType {
+	return &UpdatePlayerGameType{GameType: pk.GameType, PlayerUniqueID: pk.PlayerUniqueID, Tick: pk.Tick}
 }
