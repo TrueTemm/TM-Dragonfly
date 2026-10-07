@@ -69,6 +69,27 @@ func fromLatestContainerOpen(pk *packet.ContainerOpen) *ContainerOpen {
 	}
 }
 
+type ContainerClose struct {
+	WindowID      byte
+	ContainerType byte
+	ServerSide    bool
+}
+
+func (*ContainerClose) ID() uint32 { return IDContainerClose }
+func (pk *ContainerClose) Marshal(io protocol.IO) {
+	io.Uint8(&pk.WindowID)
+	if p := ProtoOf(io); p == 0 || p >= 685 { // added in 685
+		io.Uint8(&pk.ContainerType)
+	}
+	io.Bool(&pk.ServerSide)
+}
+func toLatestContainerClose(pk *ContainerClose) *packet.ContainerClose {
+	return &packet.ContainerClose{WindowID: pk.WindowID, ContainerType: pk.ContainerType, ServerSide: pk.ServerSide}
+}
+func fromLatestContainerClose(pk *packet.ContainerClose) *ContainerClose {
+	return &ContainerClose{WindowID: pk.WindowID, ContainerType: pk.ContainerType, ServerSide: pk.ServerSide}
+}
+
 type LecternUpdate struct {
 	Page      byte
 	PageCount byte

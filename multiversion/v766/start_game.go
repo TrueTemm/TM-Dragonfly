@@ -122,9 +122,11 @@ func (pk *StartGame) Marshal(io protocol.IO) {
 	protocol.OptionalFunc(io, &pk.ForceExperimentalGameplay, io.Bool)
 	io.Uint8(&pk.ChatRestrictionLevel)
 	io.Bool(&pk.DisablePlayerInteractions)
-	io.String(&pk.ServerID)
-	io.String(&pk.WorldID)
-	io.String(&pk.ScenarioID)
+	if p := v786.ProtoOf(io); p == 0 || p >= 685 { // added in 685
+		io.String(&pk.ServerID)
+		io.String(&pk.WorldID)
+		io.String(&pk.ScenarioID)
+	}
 	io.String(&pk.LevelID)
 	io.String(&pk.WorldName)
 	io.String(&pk.TemplateContentIdentity)

@@ -75,5 +75,7 @@ func (pk *Text) Marshal(io protocol.IO) {
 	}
 	io.String(&pk.XUID)
 	io.String(&pk.PlatformChatID)
-	io.String(&pk.FilteredMessage)
+	if p := ProtoOf(io); p == 0 || p >= 685 { // added in 685
+		io.String(&pk.FilteredMessage)
+	}
 }

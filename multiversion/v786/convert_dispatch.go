@@ -142,6 +142,8 @@ func convertToLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok bo
 		return []packet.Packet{toLatestBlockActorData(pk)}, true
 	case *ContainerOpen:
 		return []packet.Packet{toLatestContainerOpen(pk)}, true
+	case *ContainerClose:
+		return []packet.Packet{toLatestContainerClose(pk)}, true
 	case *LecternUpdate:
 		return []packet.Packet{toLatestLecternUpdate(pk)}, true
 	case *OpenSign:
@@ -316,6 +318,8 @@ func convertFromLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok 
 		return []packet.Packet{fromLatestBlockEvent(pk)}, true
 	case *packet.ContainerOpen:
 		return []packet.Packet{fromLatestContainerOpen(pk)}, true
+	case *packet.ContainerClose:
+		return []packet.Packet{fromLatestContainerClose(pk)}, true
 	case *packet.LecternUpdate:
 		return []packet.Packet{fromLatestLecternUpdate(pk)}, true
 	case *packet.OpenSign:
