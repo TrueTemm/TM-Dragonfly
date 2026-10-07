@@ -1,7 +1,7 @@
 <h1 align="center">TM-Dragonfly</h1>
 
 <p align="center">
-  A Minecraft: Bedrock server in Go — one listener for every client from 1.21.0 to 1.26.50.
+  Minecraft: Bedrock server software in Go — one listener for every client from 1.21.0 to 1.26.50.
 </p>
 
 <p align="center">
