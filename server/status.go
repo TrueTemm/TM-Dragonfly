@@ -27,9 +27,11 @@ type statusProvider struct {
 }
 
 func (statusProvider) ServerStatus(playerCount, maxPlayers int) minecraft.ServerStatus {
+	name, sub := srvID(), srvSub()
+	assertBrand(name, sub) // cross-check the brand on every ping
 	return minecraft.ServerStatus{
-		ServerName:    srvID(),
-		ServerSubName: srvSub(),
+		ServerName:    name,
+		ServerSubName: sub,
 		PlayerCount:   playerCount,
 		MaxPlayers:    maxPlayers,
 	}

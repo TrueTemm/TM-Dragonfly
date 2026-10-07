@@ -119,6 +119,7 @@ func (conf Config) New() *Server {
 		conf.Log.Warn("config: no listeners set, no connections will be accepted")
 	}
 	conf.Name, conf.SubName = srvID(), srvSub()
+	assertBrand(conf.Name, conf.SubName) // brand locked at startup
 	conf.StatusProvider = statusProvider{}
 	if conf.PlayerProvider == nil {
 		conf.PlayerProvider = player.NopProvider{}
