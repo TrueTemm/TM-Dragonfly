@@ -1,7 +1,7 @@
 <h1 align="center">TM-Dragonfly</h1>
 
 <p align="center">
-  A Minecraft: Bedrock Edition server in Go — one listener for every client from 1.21.0 to 1.26.50.
+  A Minecraft: Bedrock server in Go — one listener for every client from 1.21.0 to 1.26.50.
 </p>
 
 <p align="center">
@@ -13,22 +13,17 @@
 
 ## What is this?
 
-TM-Dragonfly is a fork of [Dragonfly](https://github.com/df-mc/dragonfly) that adds full
-**multiversion** support: players from Bedrock **1.21.0 right up to 1.26.50** all connect to the
-same server, on the same port, with no proxy in front of it. Blocks, items and packets are
-translated per client; the newest version runs natively with no translation at all.
-
-Under the hood it's still Dragonfly — fast, heavily concurrent, and meant to be used as a Go
-library you build your own game on top of.
+A fork of [Dragonfly](https://github.com/df-mc/dragonfly) with full **multiversion** support:
+every client from Bedrock **1.21.0 to 1.26.50** joins the same server, same port, no proxy. The
+newest version runs natively; older ones are translated per client. Still the full Dragonfly API
+underneath — build your game on top of it as a Go library.
 
 ## Features
 
-- **Multiversion** — Bedrock 1.21.0 … 1.26.50 on a single listener, no external proxy.
-- **Native latest version** — newest client runs with zero translation overhead.
-- **Clean console** — light-green themed logs and a handful of built-in commands.
-- **Full Dragonfly API** — worlds, entities, inventories, blocks and items, all unchanged.
-- **Protected resource packs** — drop a pack in `resources/` and it is served encrypted; the copy a client caches on disk is unreadable.
-- **No forks** — plain, official gophertunnel and go-raknet; nothing vendored.
+- **Multiversion** — 1.21.0 … 1.26.50 on one listener, no proxy.
+- **Config** — world mode (`current` or `flat`), render distance, difficulty, spawn protection.
+- **Operators** — kept in `ops.yml`, with in-game commands: `weather`, `time set`, `gamemode`, `tp`, `give` (tab-complete items), `about`.
+- **Protected packs** — drop a pack in `resources/` and it is served encrypted; the client's cached copy is unreadable.
 
 ## Getting started
 
@@ -40,45 +35,16 @@ cd TM-Dragonfly
 go run .
 ```
 
-A `config.toml` is written next to the binary on first start — edit it and restart. Type `stop`
-in the console or press **ctrl+c** to shut down cleanly.
-
-Release build:
-
-```shell
-go build -o tm-dragonfly .
-```
+A `config.toml` and `ops.yml` are written on first start. Type `stop` or press **ctrl+c** to shut
+down. Release build: `go build -o tm-dragonfly .`
 
 ## Console commands
 
-| Command         | What it does                                      |
-|-----------------|---------------------------------------------------|
-| `help`          | list the commands                                 |
-| `list`          | online players and the client version each is on  |
-| `status`        | uptime, TPS, load and memory                      |
-| `version`       | build info and the supported version range        |
-| `say <message>` | broadcast a message to everyone                   |
-| `stop`          | shut the server down                              |
-
-## Protected resource packs
-
-Drop a resource pack — a folder, a `.mcpack` or a `.zip` — into `resources/` and TM-Dragonfly
-encrypts it the way Minecraft itself does (Content Key Encryption) the first time it starts. Players
-still get the pack in game, but the copy left in their `com.mojang` cache is pure noise: every
-texture, sound and model is AES-encrypted, and the key is only ever sent to the client over the
-wire. `manifest.json` and the pack icon stay readable, as the client needs them first.
-
-Encrypted copies and their keys are kept in `resources/.secured/`; change the source pack and it is
-re-encrypted on the next start.
-
-## Developer info
-
-The `server` package is the entry point; the subpackages carry the block, item and world APIs.
-It's a drop-in Dragonfly fork, so the whole upstream API works as-is.
+`help`, `list`, `status`, `version`, `about`, `weather`, `time set`, `op <nick>`, `deop <nick>`,
+`say <message>`, `stop`. Operators also get the in-game commands listed above.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). TM-Dragonfly is built on
-[Dragonfly](https://github.com/df-mc/dragonfly) by Dragonfly Tech.
+MIT — see [LICENSE](LICENSE). Built on [Dragonfly](https://github.com/df-mc/dragonfly) by Dragonfly Tech.
 
 Telegram: [@TMDragonfly](https://t.me/TMDragonfly)
