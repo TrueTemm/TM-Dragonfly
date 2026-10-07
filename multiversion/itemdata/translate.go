@@ -35,6 +35,7 @@ type itemPalette struct {
 }
 
 var itemPalettes = map[uint32]*itemPalette{
+	671:  {entries: Items671}, // 1.20.80/81 own registry
 	685:  {entries: Items686},
 	686:  {entries: Items686},
 	712:  {entries: Items712},

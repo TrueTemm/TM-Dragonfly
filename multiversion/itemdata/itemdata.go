@@ -34,6 +34,19 @@ import (
 //go:embed runtime_item_states_686.json
 var runtimeStates686 []byte
 
+//go:embed runtime_item_states_671.json
+var runtimeStates671 []byte
+
+var (
+	items671Once sync.Once
+	items671     []protocol.ItemEntry
+)
+
+func Items671() []protocol.ItemEntry {
+	items671Once.Do(func() { items671 = loadStatesOnly(runtimeStates671) })
+	return items671
+}
+
 //go:embed runtime_item_states_712.json
 var runtimeStates712 []byte
 
