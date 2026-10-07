@@ -47,6 +47,19 @@ func Items671() []protocol.ItemEntry {
 	return items671
 }
 
+//go:embed runtime_item_states_662.json
+var runtimeStates662 []byte
+
+var (
+	items662Once sync.Once
+	items662     []protocol.ItemEntry
+)
+
+func Items662() []protocol.ItemEntry {
+	items662Once.Do(func() { items662 = loadStatesOnly(runtimeStates662) })
+	return items662
+}
+
 //go:embed runtime_item_states_712.json
 var runtimeStates712 []byte
 
