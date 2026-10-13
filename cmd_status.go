@@ -89,7 +89,7 @@ func printStatus(srv *server.Server, startedAt time.Time) {
 	}
 
 	w("%sMemory:%s     %s in use, %s reserved from OS", cCyan, cReset, mb(ms.HeapInuse+ms.StackInuse), mb(ms.Sys))
-	w("%sRuntime:%s    %d tasks, %d CPUs", cCyan, cReset, runtime.NumGoroutine(), runtime.NumCPU())
+	w("%sRuntime:%s    %d goroutines, %d CPUs", cCyan, cReset, runtime.NumGoroutine(), runtime.NumCPU())
 	if len(rows) > 0 {
 		var names []string
 		for _, r := range rows {
