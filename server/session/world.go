@@ -1034,8 +1034,8 @@ func (s *Session) ViewEntityAction(e world.Entity, a world.EntityAction) {
 	switch act := a.(type) {
 	case entity.SwingArmAction:
 		if _, ok := e.(Controllable); ok {
-			if s.entityRuntimeID(e) == selfEntityRuntimeID && s.swingingArm.Load() {
-				return
+			if s.entityRuntimeID(e) == selfEntityRuntimeID {
+				return // never echo a swing to its own client
 			}
 			s.writePacket(&packet.Animate{
 				ActionType:      packet.AnimateActionSwingArm,
