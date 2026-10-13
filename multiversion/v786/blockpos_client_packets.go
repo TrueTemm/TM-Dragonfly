@@ -94,6 +94,7 @@ type LecternUpdate struct {
 	Page      byte
 	PageCount byte
 	Position  protocol.BlockPos
+	DropBook  bool
 }
 
 func (*LecternUpdate) ID() uint32 { return IDLecternUpdate }
@@ -101,6 +102,9 @@ func (pk *LecternUpdate) Marshal(io protocol.IO) {
 	io.Uint8(&pk.Page)
 	io.Uint8(&pk.PageCount)
 	UBlockPos786(io, &pk.Position)
+	if p := ProtoOf(io); p != 0 && p < 662 { // removed in 662
+		io.Bool(&pk.DropBook)
+	}
 }
 func toLatestLecternUpdate(pk *LecternUpdate) *packet.LecternUpdate {
 	return &packet.LecternUpdate{Page: pk.Page, PageCount: pk.PageCount, Position: pk.Position}

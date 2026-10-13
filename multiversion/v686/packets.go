@@ -290,7 +290,9 @@ func (*ResourcePacksInfo) ID() uint32 { return v786.IDResourcePacksInfo }
 
 func (pk *ResourcePacksInfo) Marshal(io protocol.IO) {
 	io.Bool(&pk.TexturePackRequired)
-	io.Bool(&pk.HasAddons)
+	if p := v786.ProtoOf(io); p == 0 || p >= 662 { // added in 662
+		io.Bool(&pk.HasAddons)
+	}
 	io.Bool(&pk.HasScripts)
 	io.Bool(&pk.ForcingServerPacks)
 	v786.SliceUint16Length786(io, &pk.BehaviourPacks)

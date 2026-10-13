@@ -86,5 +86,7 @@ func (pk *MobEffect) Marshal(io protocol.IO) {
 	io.Varint32(&pk.Amplifier)
 	io.Bool(&pk.Particles)
 	io.Varint32(&pk.Duration)
-	io.Varuint64(&pk.Tick)
+	if p := ProtoOf(io); p == 0 || p >= 662 { // added in 662
+		io.Varuint64(&pk.Tick)
+	}
 }

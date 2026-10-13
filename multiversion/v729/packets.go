@@ -185,7 +185,9 @@ func (pk *MobEffect) Marshal(io protocol.IO) {
 	io.Varint32(&pk.Amplifier)
 	io.Bool(&pk.Particles)
 	io.Varint32(&pk.Duration)
-	io.Uint64(&pk.Tick)
+	if p := v786.ProtoOf(io); p == 0 || p >= 662 { // added in 662
+		io.Uint64(&pk.Tick)
+	}
 }
 
 func fromLatestMobEffect(pk *packet.MobEffect) *MobEffect {

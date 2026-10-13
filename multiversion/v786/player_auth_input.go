@@ -199,7 +199,9 @@ func (pk *PlayerAuthInput) Marshal(io protocol.IO) {
 	}
 
 	if pk.InputData.Load(InputFlagClientPredictedVehicle) {
-		io.Vec2(&pk.VehicleRotation)
+		if p := ProtoOf(io); p == 0 || p >= 662 { // added in 662
+			io.Vec2(&pk.VehicleRotation)
+		}
 		io.Varint64(&pk.ClientPredictedVehicle)
 	}
 

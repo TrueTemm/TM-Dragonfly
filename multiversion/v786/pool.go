@@ -61,7 +61,7 @@ func NewServerPool() packet.Pool {
 		IDPlayerAction:                      func() packet.Packet { return &PlayerAction{} },
 		IDHurtArmour:                        func() packet.Packet { return &HurtArmour{} },
 		IDSetActorData:                      func() packet.Packet { return &SetActorData{} },
-		IDSetActorMotion:                    func() packet.Packet { return &packet.SetActorMotion{} },
+		IDSetActorMotion:                    func() packet.Packet { return &SetActorMotion{} },
 		IDSetActorLink:                      func() packet.Packet { return &packet.SetActorLink{} },
 		IDSetHealth:                         func() packet.Packet { return &packet.SetHealth{} },
 		IDSetSpawnPosition:                  func() packet.Packet { return &SetSpawnPosition{} },
