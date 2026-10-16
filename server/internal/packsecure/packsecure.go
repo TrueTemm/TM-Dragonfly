@@ -43,6 +43,34 @@ const keyAlphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW
 
 var exempt = map[string]bool{"manifest.json": true, "pack_icon.png": true, "bug_pack_icon.png": true, "contents.json": true}
 
+func LoadPlain(dir string) ([]*resource.Pack, error) { // no encryption, EncryptPacks off
+	_ = os.MkdirAll(dir, 0o777)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("read dir: %w", err)
+	}
+	packs := make([]*resource.Pack, 0, len(entries))
+	for _, e := range entries {
+		name := e.Name()
+		if name == ".secured" {
+			continue
+		}
+		if !e.IsDir() {
+			switch strings.ToLower(filepath.Ext(name)) {
+			case ".mcpack", ".zip":
+			default:
+				continue
+			}
+		}
+		pack, err := resource.ReadPath(filepath.Join(dir, name))
+		if err != nil {
+			return nil, fmt.Errorf("read %v: %w", name, err)
+		}
+		packs = append(packs, pack)
+	}
+	return packs, nil
+}
+
 func Load(dir string) ([]*resource.Pack, error) {
 	_ = os.MkdirAll(dir, 0o777)
 	out := filepath.Join(dir, ".secured") // encrypted copies live here

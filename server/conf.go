@@ -242,6 +242,8 @@ type UserConfig struct {
 		Folder string
 
 		Required bool
+
+		EncryptPacks bool // false serves resources/ as-is, no .secured copies
 	}
 }
 
@@ -290,7 +292,7 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 			return conf, fmt.Errorf("create world provider: %w", err)
 		}
 	}
-	conf.Resources, err = loadResources(uc.Resources.Folder)
+	conf.Resources, err = loadResources(uc.Resources.Folder, uc.Resources.EncryptPacks)
 	if err != nil {
 		return conf, fmt.Errorf("load resources: %w", err)
 	}
@@ -343,8 +345,12 @@ func worldGenerator(mode string) func(world.Dimension) world.Generator {
 	return loadGenerator
 }
 
-func loadResources(dir string) ([]*resource.Pack, error) {
-	packs, err := packsecure.Load(dir)
+func loadResources(dir string, encrypt bool) ([]*resource.Pack, error) {
+	load := packsecure.LoadPlain
+	if encrypt {
+		load = packsecure.Load
+	}
+	packs, err := load(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -431,6 +437,7 @@ func DefaultConfig() UserConfig {
 	c.Resources.AutoBuildPack = true
 	c.Resources.Folder = "resources"
 	c.Resources.Required = false
+	c.Resources.EncryptPacks = true
 	return c
 }
 

@@ -27,3 +27,4 @@ tm-dragonfly.exe
 *.out
 *.prof
 releases/
+tools/blindverify/

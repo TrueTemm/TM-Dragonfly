@@ -1,6 +1,5 @@
 *.go eol=lf
 
-# keep the GitHub language bar Go-only
 *.sh linguist-vendored
 *.json linguist-generated
 *.nbt linguist-generated
