@@ -20,15 +20,38 @@ TM-Dragonfly Project
 package v2169
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/native"
+	"github.com/df-mc/dragonfly/multiversion/v2193"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func FromLatestShared(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
-	return convertFromLatest(proto, pk)
+	pk = native.FromLatestFor(proto, pk)[0] // block hashes
+	if sg, ok := pk.(*packet.StartGame); ok {
+		out := *sg
+		version := "1.26.45"
+		if proto == 2168 {
+			version = "1.26.44"
+		}
+		out.BaseGameVersion, out.GameVersion = version, version
+		pk = &out
+	}
+	if out, ok := convertFromLatest(proto, pk); ok {
+		return out, true
+	}
+	if w, ok := v2193.FromLatest(pk); ok {
+		return []packet.Packet{w}, true
+	}
+	return []packet.Packet{pk}, true
 }
 
 func ToLatestShared(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
-	return convertToLatest(proto, pk)
+	if out, ok := convertToLatest(proto, pk); ok {
+		pk = out[0]
+	} else if w, ok := v2193.ToLatest(pk); ok {
+		pk = w
+	}
+	return native.ToLatestFor(proto, pk), true
 }
 
 func convertFromLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok bool) {

@@ -20,15 +20,40 @@ TM-Dragonfly Project
 package v2169
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/native"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
 type Reader2169 struct {
 	*protocol.Reader
+	Proto uint32 // source protocol
 }
 
 type Writer2169 struct {
 	*protocol.Writer
+	Proto uint32
+}
+
+func (r Reader2169) Item(x *protocol.ItemStack) {
+	r.Reader.Item(x)
+	x.BlockRuntimeID = native.UnhashItemBlock(r.Proto, x.BlockRuntimeID)
+}
+
+func (w Writer2169) Item(x *protocol.ItemStack) {
+	y := *x
+	y.BlockRuntimeID = native.HashItemBlock(w.Proto, y.BlockRuntimeID)
+	w.Writer.Item(&y)
+}
+
+func (r Reader2169) ItemInstance(x *protocol.ItemInstance) {
+	r.Reader.ItemInstance(x)
+	x.Stack.BlockRuntimeID = native.UnhashItemBlock(r.Proto, x.Stack.BlockRuntimeID)
+}
+
+func (w Writer2169) ItemInstance(x *protocol.ItemInstance) {
+	y := *x
+	y.Stack.BlockRuntimeID = native.HashItemBlock(w.Proto, y.Stack.BlockRuntimeID)
+	w.Writer.ItemInstance(&y)
 }
 
 func DoubleOptionalFunc[T any](r protocol.IO, x *protocol.Optional[T], f func(*T)) {
@@ -83,7 +108,6 @@ func playerInventoryAction(r protocol.IO, x *protocol.UseItemTransactionData) {
 	protocol.OptionalFunc(r, &x.LegacySetItemSlots, func(slots *[]protocol.LegacySetItemSlot) {
 		protocol.Slice(r, slots)
 	})
-
 	var actions protocol.Optional[[]InventoryAction]
 	if len(x.Actions) != 0 {
 		actions = protocol.Option(inventoryActions(x.Actions))
@@ -99,7 +123,6 @@ func playerInventoryAction(r protocol.IO, x *protocol.UseItemTransactionData) {
 	r.BlockPos(&x.BlockPosition)
 	protocol.IntegerFunc(&x.BlockFace, r.Uint8)
 	r.Varint32(&x.HotBarSlot)
-
 	r.ItemInstance(&x.HeldItem)
 	r.Vec3(&x.Position)
 	r.Vec3(&x.ClickedPosition)

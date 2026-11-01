@@ -20,6 +20,7 @@ TM-Dragonfly Project
 package v2169
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/v2193"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
@@ -35,7 +36,6 @@ func (pk *InventoryTransaction) Marshal(io protocol.IO) {
 	if hasLegacy {
 		protocol.Slice(io, &pk.LegacySetItemSlots)
 	}
-
 	hasType := true
 	io.Bool(&hasType)
 	if !hasType {
@@ -55,7 +55,7 @@ func (pk *InventoryTransaction) Marshal(io protocol.IO) {
 		useItemTransactionData(io, use)
 		return
 	}
-	pk.TransactionData.Marshal(io)
+	v2193.TransactionBody(io, pk.TransactionData)
 }
 
 func toLatestInventoryTransaction(pk *InventoryTransaction) *packet.InventoryTransaction {

@@ -26,7 +26,6 @@ import (
 
 type BossEvent struct {
 	packet.BossEvent
-
 	PlayerUniqueID int64
 }
 

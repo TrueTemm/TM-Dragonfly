@@ -23,7 +23,6 @@ import (
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 )
 
 type Protocol struct{}
@@ -40,11 +39,11 @@ func (Protocol) Packets(listener bool) packet.Pool {
 }
 
 func (Protocol) NewReader(r minecraft.ByteReader, shieldID int32, enableLimits bool) protocol.IO {
-	return Reader2169{Reader: protocol.NewReader(r, shieldID, enableLimits)}
+	return Reader2169{Reader: protocol.NewReader(r, shieldID, enableLimits), Proto: 2169}
 }
 
 func (Protocol) NewWriter(w minecraft.ByteWriter, shieldID int32) protocol.IO {
-	return Writer2169{Writer: protocol.NewWriter(w, shieldID)}
+	return Writer2169{Writer: protocol.NewWriter(w, shieldID), Proto: 2169}
 }
 
 func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []packet.Packet {

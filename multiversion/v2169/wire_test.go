@@ -84,7 +84,6 @@ func TestPlayerAuthInputAgainstReal2169(t *testing.T) {
 	if use.BlockRuntimeID != 1042 {
 		t.Errorf("block runtime ID: want 1042, got %v", use.BlockRuntimeID)
 	}
-
 	if use.Hand != protocol.HandSlotMainHand {
 		t.Errorf("hand: want the main hand, got %v", use.Hand)
 	}

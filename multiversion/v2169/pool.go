@@ -20,10 +20,12 @@ TM-Dragonfly Project
 package v2169
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/v2193"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func applyDeltas2169(p packet.Pool) {
+	v2193.ApplyDeltas(p)
 	p[packet.IDBossEvent] = func() packet.Packet { return &BossEvent{} }
 	p[packet.IDMoveActorDelta] = func() packet.Packet { return &MoveActorDelta{} }
 	p[packet.IDPlaySound] = func() packet.Packet { return &PlaySound{} }

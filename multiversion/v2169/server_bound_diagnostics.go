@@ -60,7 +60,9 @@ func (pk *ServerBoundDiagnostics) Marshal(io protocol.IO) {
 		pk.EntityDiagnostics[i] = e.EntityDiagnosticTimingInfo
 	}
 	protocol.Slice(io, &pk.SystemDiagnostics)
-	protocol.Slice(io, &pk.SystemCategories)
+	cats, _ := pk.SystemCategories.Value()
+	protocol.Slice(io, &cats)
+	pk.SystemCategories = protocol.Option(cats)
 	protocol.Slice(io, &pk.WhiskerScopes)
 }
 
