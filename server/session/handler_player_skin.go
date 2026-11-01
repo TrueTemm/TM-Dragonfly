@@ -35,6 +35,7 @@ func (PlayerSkinHandler) Handle(p packet.Packet, _ *Session, _ *world.Tx, c Cont
 		return fmt.Errorf("error decoding skin: %w", err)
 	}
 
+	playerSkin.PlayFabID = c.Skin().PlayFabID
 	c.SetSkin(playerSkin)
 
 	return nil

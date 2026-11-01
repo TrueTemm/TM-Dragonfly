@@ -102,3 +102,18 @@ func TestPersonaPieceTypeRoundTrips(t *testing.T) {
 		t.Fatalf("expected PieceTypeHair, got %d", got)
 	}
 }
+
+func TestPlayerListPlayFabIDConversion(t *testing.T) {
+	legacy := &PlayerList{
+		ActionType: PlayerListActionAdd,
+		Entries:    []PlayerListEntry786{{Skin: Skin786{PlayFabID: "playfab"}}},
+	}
+	latest := toLatestPlayerList(legacy)
+	if latest.Entries[0].PlayFabID != "playfab" {
+		t.Fatalf("native player list lost PlayFabID: %q", latest.Entries[0].PlayFabID)
+	}
+	back := fromLatestPlayerList(latest)
+	if back.Entries[0].Skin.PlayFabID != "playfab" {
+		t.Fatalf("legacy player list lost PlayFabID: %q", back.Entries[0].Skin.PlayFabID)
+	}
+}

@@ -211,7 +211,7 @@ func toLatestPlayerList(pk *PlayerList) *packet.PlayerList {
 	for i, e := range pk.Entries {
 		entries[i] = protocol.PlayerListEntry{
 			ActionType: pk.ActionType, UUID: e.UUID, EntityUniqueID: e.EntityUniqueID, Username: e.Username,
-			XUID: e.XUID, PlatformChatID: e.PlatformChatID, BuildPlatform: e.BuildPlatform,
+			XUID: e.XUID, PlayFabID: e.Skin.PlayFabID, PlatformChatID: e.PlatformChatID, BuildPlatform: e.BuildPlatform,
 			Skin: toLatestSkin786(e.Skin), Teacher: e.Teacher, Host: e.Host, SubClient: e.SubClient,
 		}
 	}
@@ -230,6 +230,7 @@ func fromLatestPlayerList(pk *packet.PlayerList) *PlayerList {
 			PlatformChatID: e.PlatformChatID, BuildPlatform: e.BuildPlatform, Skin: fromLatestSkin786(e.Skin),
 			Teacher: e.Teacher, Host: e.Host, SubClient: e.SubClient,
 		}
+		entries[i].Skin.PlayFabID = e.PlayFabID
 	}
 	return &PlayerList{ActionType: action, Entries: entries}
 }
@@ -267,7 +268,7 @@ func fromLatestSkin786(s protocol.Skin) Skin786 {
 		armSize = "wide"
 	}
 	return Skin786{
-		SkinID: s.SkinID, PlayFabID: s.PlayFabID, SkinResourcePatch: s.SkinResourcePatch,
+		SkinID: s.SkinID, SkinResourcePatch: s.SkinResourcePatch,
 		SkinImageWidth: s.SkinImageWidth, SkinImageHeight: s.SkinImageHeight, SkinData: s.SkinData,
 		Animations: animations, CapeImageWidth: s.CapeImageWidth, CapeImageHeight: s.CapeImageHeight,
 		CapeData: s.CapeData, SkinGeometry: s.SkinGeometry, GeometryDataEngineVersion: s.GeometryDataEngineVersion,
@@ -306,7 +307,7 @@ func toLatestSkin786(s Skin786) protocol.Skin {
 		armSize = protocol.ArmSizeWide
 	}
 	return protocol.Skin{
-		SkinID: s.SkinID, PlayFabID: s.PlayFabID, SkinResourcePatch: s.SkinResourcePatch,
+		SkinID: s.SkinID, SkinResourcePatch: s.SkinResourcePatch,
 		SkinImageWidth: s.SkinImageWidth, SkinImageHeight: s.SkinImageHeight, SkinData: s.SkinData,
 		Animations: animations, CapeImageWidth: s.CapeImageWidth, CapeImageHeight: s.CapeImageHeight,
 		CapeData: s.CapeData, SkinGeometry: s.SkinGeometry, GeometryDataEngineVersion: s.GeometryDataEngineVersion,
