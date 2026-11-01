@@ -41,11 +41,11 @@ func (Protocol) Packets(listener bool) packet.Pool {
 }
 
 func (Protocol) NewReader(r minecraft.ByteReader, shieldID int32, enableLimits bool) protocol.IO {
-	return v2169.Reader2169{Reader: protocol.NewReader(r, shieldID, enableLimits)}
+	return v2169.Reader2169{Reader: protocol.NewReader(r, shieldID, enableLimits), Proto: 2168}
 }
 
 func (Protocol) NewWriter(w minecraft.ByteWriter, shieldID int32) protocol.IO {
-	return v2169.Writer2169{Writer: protocol.NewWriter(w, shieldID)}
+	return v2169.Writer2169{Writer: protocol.NewWriter(w, shieldID), Proto: 2168}
 }
 
 func (p Protocol) ConvertToLatest(pk packet.Packet, conn *minecraft.Conn) []packet.Packet {

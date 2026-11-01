@@ -54,7 +54,6 @@ func (x *ScoreboardEntry) Marshal(r protocol.IO) {
 		if x.ObjectiveName != "" {
 			objective = protocol.Option(x.ObjectiveName)
 		}
-
 		v2169.DoubleOptionalFunc(r, &objective, r.String)
 		x.ObjectiveName, _ = objective.Value()
 	case protocol.ScoreboardIdentityEntity, protocol.ScoreboardIdentityPlayer:
