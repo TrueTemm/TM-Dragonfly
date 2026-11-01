@@ -28,6 +28,7 @@ import (
 	"github.com/df-mc/dragonfly/multiversion/v1001"
 	"github.com/df-mc/dragonfly/multiversion/v2168"
 	"github.com/df-mc/dragonfly/multiversion/v2169"
+	"github.com/df-mc/dragonfly/multiversion/v2193"
 	"github.com/df-mc/dragonfly/multiversion/v649"
 	"github.com/df-mc/dragonfly/multiversion/v662"
 	"github.com/df-mc/dragonfly/multiversion/v671"
@@ -61,7 +62,11 @@ type Listener interface {
 }
 
 func (uc UserConfig) listenerFunc(conf Config) (Listener, error) {
-	cfg := minecraft.ListenConfig{
+	return uc.transportListener(conf, "raknet")
+}
+
+func (uc UserConfig) minecraftListenConfig(conf Config) minecraft.ListenConfig {
+	return minecraft.ListenConfig{
 		MaximumPlayers:         conf.MaxPlayers,
 		StatusProvider:         conf.StatusProvider,
 		AuthenticationDisabled: conf.AuthDisabled,
@@ -71,15 +76,36 @@ func (uc UserConfig) listenerFunc(conf Config) (Listener, error) {
 		Allow:                  conf.Allower.Allow,
 		HTTPClient:             authClient,
 
-		AcceptedProtocols: []minecraft.Protocol{v649.Protocol{}, v662.Protocol{}, v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{}, v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, native.Protocol{}},
+		AcceptedProtocols: []minecraft.Protocol{v649.Protocol{}, v662.Protocol{}, v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{}, v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, v2193.Protocol{}, native.Protocol{}},
 	}
+}
 
-	cfg.ErrorLog = conf.Log.With("net origin", "gophertunnel")
-	l, err := cfg.Listen("raknet", uc.Network.Address)
+func (uc UserConfig) sharedRakNetListener(conf Config, shared *sharedGameUDP) (Listener, error) {
+	mux, err := shared.packet()
+	if err != nil {
+		logNetherNetListenFailure(conf.Log, uc.Network.Address, uc.Network.Address, err)
+		return nil, fmt.Errorf("listen shared UDP: %w", err)
+	}
+	cfg := uc.minecraftListenConfig(conf)
+	cfg.ErrorLog = conf.Log.With("net origin", "gophertunnel", "transport", "raknet")
+	l, err := cfg.ListenNetwork(sharedRakNetNetwork{conn: mux.raknet}, uc.Network.Address)
+	if err != nil {
+		_ = mux.raknet.Close()
+		_ = mux.ice.Close()
+		return nil, err
+	}
+	conf.Log.Info("Listener running", "transport", "raknet", "addr", l.Addr())
+	return listener{Listener: l, log: conf.Log}, nil
+}
+
+func (uc UserConfig) transportListener(conf Config, transport string) (Listener, error) {
+	cfg := uc.minecraftListenConfig(conf)
+	cfg.ErrorLog = conf.Log.With("net origin", "gophertunnel", "transport", transport)
+	l, err := cfg.Listen(transport, uc.Network.Address)
 	if err != nil {
 		return nil, fmt.Errorf("create minecraft listener: %w", err)
 	}
-	conf.Log.Info("Listener running.", "addr", l.Addr())
+	conf.Log.Info("Listener running", "transport", transport, "addr", l.Addr())
 	return listener{Listener: l, log: conf.Log}, nil
 }
 

@@ -190,7 +190,15 @@ func (conf Config) New() *Server {
 
 type UserConfig struct {
 	Network struct {
-		Address string
+		Address   string
+		NetherNet struct {
+			Enabled     bool
+			Certificate string
+			PrivateKey  string
+			ICEAddress  string
+			PublicIP    string
+			SharedUDP   bool
+		}
 	}
 	Server struct {
 		Name string
@@ -318,7 +326,20 @@ func (uc UserConfig) Config(log *slog.Logger) (Config, error) {
 		conf.Difficulty = d
 	}
 	conf.SpawnProtection = uc.World.SpawnProtection
-	conf.Listeners = append(conf.Listeners, uc.listenerFunc)
+	if uc.Network.NetherNet.Enabled && uc.Network.NetherNet.SharedUDP {
+		shared := &sharedGameUDP{address: uc.Network.Address}
+		conf.Listeners = append(conf.Listeners, func(c Config) (Listener, error) {
+			return uc.sharedRakNetListener(c, shared)
+		})
+		conf.Listeners = append(conf.Listeners, func(c Config) (Listener, error) {
+			return uc.netherNetListenerWithUDP(c, shared)
+		})
+	} else {
+		conf.Listeners = append(conf.Listeners, uc.listenerFunc)
+		if uc.Network.NetherNet.Enabled {
+			conf.Listeners = append(conf.Listeners, uc.netherNetListener)
+		}
+	}
 	return conf, nil
 }
 
@@ -417,6 +438,8 @@ func gameModeByName(name string) (world.GameMode, bool) {
 func DefaultConfig() UserConfig {
 	c := UserConfig{}
 	c.Network.Address = ":19132"
+	c.Network.NetherNet.Enabled = true
+	c.Network.NetherNet.SharedUDP = true
 	c.Server.Name = "A TM-Dragonfly server"
 	c.Server.SubName = "Powered by TM-Dragonfly"
 	c.Server.AuthEnabled = true
