@@ -33,14 +33,18 @@ type Writer struct {
 	*protocol.Writer
 }
 
-func hash(rid int32) int32 {
+func hash(rid int32) int32 { return HashItemBlock(proto, rid) }
+
+func unhash(h int32) int32 { return UnhashItemBlock(proto, h) }
+
+func HashItemBlock(proto uint32, rid int32) int32 {
 	if rid == 0 {
 		return 0
 	}
 	return int32(blockpalette.HashFor(proto, uint32(rid)))
 }
 
-func unhash(h int32) int32 {
+func UnhashItemBlock(proto uint32, h int32) int32 {
 	if h == 0 {
 		return 0
 	}

@@ -28,9 +28,12 @@ import (
 )
 
 func convertFromLatest(pk packet.Packet) []packet.Packet {
+	return FromLatestFor(proto, pk)
+}
+
+func FromLatestFor(proto uint32, pk packet.Packet) []packet.Packet {
 	switch pk := pk.(type) {
 	case *packet.StartGame:
-
 		out := *pk
 		out.UseBlockNetworkIDHashes = true
 		return []packet.Packet{&out}
@@ -39,7 +42,7 @@ func convertFromLatest(pk packet.Packet) []packet.Packet {
 		out.RawPayload = blockpalette.RemapChunkBlockPalette(pk.RawPayload, pk.SubChunkCount, proto)
 		return []packet.Packet{&out}
 	case *packet.SubChunk:
-		return []packet.Packet{remapSubChunk(pk)}
+		return []packet.Packet{remapSubChunk(proto, pk)}
 	case *packet.UpdateBlock:
 		out := *pk
 		out.NewBlockRuntimeID = blockpalette.HashFor(proto, pk.NewBlockRuntimeID)
@@ -55,6 +58,18 @@ func convertFromLatest(pk packet.Packet) []packet.Packet {
 		return []packet.Packet{&out}
 	case *packet.LevelEvent:
 		return []packet.Packet{v786.FromLatestLevelEvent(pk, proto)}
+	case *packet.AddActor:
+		v, ok := pk.EntityMetadata[protocol.EntityDataKeyVariant].(int32)
+		if pk.EntityType != "minecraft:falling_block" || !ok {
+			return []packet.Packet{pk}
+		}
+		out := *pk
+		out.EntityMetadata = make(protocol.EntityMetadata, len(pk.EntityMetadata))
+		for k, val := range pk.EntityMetadata {
+			out.EntityMetadata[k] = val
+		}
+		out.EntityMetadata[protocol.EntityDataKeyVariant] = int32(blockpalette.HashFor(proto, uint32(v)))
+		return []packet.Packet{&out}
 	case *packet.LevelSoundEvent:
 		if !v786.BlockSoundCarriesRuntimeID(pk.SoundType) {
 			return []packet.Packet{pk}
@@ -67,9 +82,12 @@ func convertFromLatest(pk packet.Packet) []packet.Packet {
 }
 
 func convertToLatest(pk packet.Packet) []packet.Packet {
+	return ToLatestFor(proto, pk)
+}
+
+func ToLatestFor(proto uint32, pk packet.Packet) []packet.Packet {
 	switch pk := pk.(type) {
 	case *packet.ClientCacheStatus:
-
 		_ = pk
 		return []packet.Packet{&packet.ClientCacheStatus{Enabled: false}}
 	case *packet.UpdateSubChunkBlocks:
@@ -88,7 +106,7 @@ func convertToLatest(pk packet.Packet) []packet.Packet {
 	return []packet.Packet{pk}
 }
 
-func remapSubChunk(pk *packet.SubChunk) *packet.SubChunk {
+func remapSubChunk(proto uint32, pk *packet.SubChunk) *packet.SubChunk {
 	out := *pk
 	out.SubChunkEntries = make([]protocol.SubChunkEntry, len(pk.SubChunkEntries))
 	for i, e := range pk.SubChunkEntries {
