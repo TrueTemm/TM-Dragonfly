@@ -92,8 +92,12 @@ var palettes = map[uint32]*palette{
 
 func init() { palettes[uint32(protocol.CurrentProtocol)] = &palette{} }
 
-func Supported(protocol uint32) bool {
-	_, ok := palettes[protocol]
+func Supported(proto uint32) bool {
+	switch proto {
+	case 2168, 2169, 2193:
+		return true
+	}
+	_, ok := palettes[proto]
 	return ok
 }
 
