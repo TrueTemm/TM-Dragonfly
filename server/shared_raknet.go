@@ -1,3 +1,22 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
 package server
 
 import (
@@ -33,10 +52,10 @@ func (n sharedRakNetNetwork) Listen(address string) (minecraft.NetworkListener, 
 	return raknet.ListenConfig{UpstreamPacketListener: reusedPacketListener{conn: n.conn}}.Listen(address)
 }
 func (n sharedRakNetNetwork) DialContext(ctx context.Context, address string) (net.Conn, error) {
-	return minecraft.RakNet{}.DialContext(ctx, address)
+	return rakNetNetwork(nil).DialContext(ctx, address)
 }
 func (n sharedRakNetNetwork) PingContext(ctx context.Context, address string) ([]byte, error) {
-	return minecraft.RakNet{}.PingContext(ctx, address)
+	return rakNetNetwork(nil).PingContext(ctx, address)
 }
 
 var _ minecraft.Network = sharedRakNetNetwork{}
