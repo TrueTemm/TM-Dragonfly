@@ -20,15 +20,23 @@ TM-Dragonfly Project
 package v786
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/blockpalette"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
 func (r Reader786) PlayerInventoryAction(x *protocol.UseItemTransactionData) {
 	playerInventoryAction786(r, r.Proto, x)
+	if r.Proto != 0 && r.Proto <= 630 {
+		x.BlockRuntimeID = blockpalette.RuntimeIDFor(r.Proto, x.BlockRuntimeID)
+	}
 }
 
 func (w Writer786) PlayerInventoryAction(x *protocol.UseItemTransactionData) {
-	playerInventoryAction786(w, w.Proto, x)
+	cp := *x
+	if w.Proto != 0 && w.Proto <= 630 {
+		cp.BlockRuntimeID = blockpalette.HashFor(w.Proto, cp.BlockRuntimeID)
+	}
+	playerInventoryAction786(w, w.Proto, &cp)
 }
 
 func playerInventoryAction786(r protocol.IO, proto uint32, x *protocol.UseItemTransactionData) {

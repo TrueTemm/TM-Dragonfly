@@ -20,6 +20,7 @@ TM-Dragonfly Project
 package v786
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/blockpalette"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
@@ -136,7 +137,17 @@ func (d *useItemTx786) Marshal(r protocol.IO) {
 	r.ItemInstance(&d.HeldItem)
 	r.Vec3(&d.Position)
 	r.Vec3(&d.ClickedPosition)
-	r.Varuint32(&d.BlockRuntimeID)
+	block := d.BlockRuntimeID
+	if _, writing := r.(Writer786); writing && p != 0 && p <= 630 {
+		block = blockpalette.HashFor(p, block)
+	}
+	r.Varuint32(&block)
+	if _, reading := r.(Reader786); reading {
+		if p != 0 && p <= 630 {
+			block = blockpalette.RuntimeIDFor(p, block)
+		}
+		d.BlockRuntimeID = block
+	}
 	if p == 0 || p >= 712 {
 		r.Varuint32(&d.ClientPrediction)
 	}
