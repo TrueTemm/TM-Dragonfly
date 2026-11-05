@@ -505,9 +505,9 @@ func (p *Player) updateFallState(distanceThisTick float64) {
 			p.fall(p.fallDistance)
 		}
 		p.ResetFallDistance()
-	case distanceThisTick < 0 && distanceThisTick < p.fallDistance:
+	case distanceThisTick < 0:
 		p.fallDistance -= distanceThisTick
-	default:
+	case distanceThisTick > 0: // zero keeps fall distance
 		p.ResetFallDistance()
 	}
 }
@@ -2147,8 +2147,11 @@ func (p *Player) teleportBecause(pos mgl64.Vec3, cause session.TeleportCause) {
 func (p *Player) Move(deltaPos mgl64.Vec3, deltaYaw, deltaPitch float64) {
 
 	defer p.settleTeleport()
-	if p.Dead() || (deltaPos.ApproxEqual(mgl64.Vec3{}) && mgl64.FloatEqual(deltaYaw, 0) && mgl64.FloatEqual(deltaPitch, 0)) {
-		p.onGround = true
+	if p.Dead() {
+		return
+	}
+	if deltaPos.ApproxEqual(mgl64.Vec3{}) && mgl64.FloatEqual(deltaYaw, 0) && mgl64.FloatEqual(deltaPitch, 0) {
+		p.onGround = p.checkOnGround(deltaPos)
 		p.updateFallState(deltaPos.Y())
 		return
 	}

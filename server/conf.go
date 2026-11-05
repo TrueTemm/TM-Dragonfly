@@ -447,7 +447,7 @@ func DefaultConfig() UserConfig {
 	c.World.Folder = "worlds/world"
 	c.World.WorldsFolder = "worlds"
 	c.World.AlwaysDay = true
-	c.World.FallDamage = false
+	c.World.FallDamage = true
 	c.World.DefaultGameMode = "survival"
 	c.World.RandomTickSpeed = 0
 	c.World.Generator = "flat" // "flat" or "current" for the loaded world untouched
