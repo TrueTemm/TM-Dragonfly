@@ -60,6 +60,59 @@ func Items662() []protocol.ItemEntry {
 	return items662
 }
 
+//go:embed runtime_item_states_589.json
+var runtimeStates589 []byte
+var items589Once sync.Once
+var items589 []protocol.ItemEntry
+
+func Items589() []protocol.ItemEntry {
+	items589Once.Do(func() { items589 = loadStatesOnly(runtimeStates589) })
+	return items589
+}
+
+//go:embed runtime_item_states_594.json
+var runtimeStates594 []byte
+var items594Once sync.Once
+var items594 []protocol.ItemEntry
+
+func Items594() []protocol.ItemEntry {
+	items594Once.Do(func() { items594 = loadStatesOnly(runtimeStates594) })
+	return items594
+}
+
+//go:embed runtime_item_states_618.json
+var runtimeStates618 []byte
+var items618Once sync.Once
+var items618 []protocol.ItemEntry
+
+func Items618() []protocol.ItemEntry {
+	items618Once.Do(func() { items618 = loadStatesOnly(runtimeStates618) })
+	return items618
+}
+
+//go:embed runtime_item_states_622.json
+var runtimeStates622 []byte
+var items622Once sync.Once
+var items622 []protocol.ItemEntry
+
+func Items622() []protocol.ItemEntry {
+	items622Once.Do(func() { items622 = loadStatesOnly(runtimeStates622) })
+	return items622
+}
+
+//go:embed runtime_item_states_630.json
+var runtimeStates630 []byte
+
+var (
+	items630Once sync.Once
+	items630     []protocol.ItemEntry
+)
+
+func Items630() []protocol.ItemEntry {
+	items630Once.Do(func() { items630 = loadStatesOnly(runtimeStates630) })
+	return items630
+}
+
 //go:embed runtime_item_states_649.json
 var runtimeStates649 []byte
 

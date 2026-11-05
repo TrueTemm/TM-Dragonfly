@@ -35,6 +35,12 @@ type itemPalette struct {
 }
 
 var itemPalettes = map[uint32]*itemPalette{
+	589:  {entries: Items589},
+	594:  {entries: Items594},
+	598:  {entries: Items594},
+	618:  {entries: Items618},
+	622:  {entries: Items622},
+	630:  {entries: Items630},
 	649:  {entries: Items649}, // 1.20.60/61 own registry
 	662:  {entries: Items662}, // 1.20.70/71 own registry
 	671:  {entries: Items671}, // 1.20.80/81 own registry
@@ -126,4 +132,11 @@ func ShieldID(protocolID uint32) int32 {
 	}
 	p.load()
 	return p.shieldID
+}
+
+func ItemsFor(protocolID uint32) []protocol.ItemEntry {
+	if p, ok := itemPalettes[protocolID]; ok {
+		return p.entries()
+	}
+	return nil
 }
