@@ -1,0 +1,17 @@
+{
+  "protocol": 598,
+  "version": "1.20.20.20",
+  "bds_sha1": "26bdc22f0afc1801e7c514cfbd5e7b6ee5965fd0",
+  "download_url": "https://www.minecraft.net/bedrockdedicatedserver/bin-linux-preview/bedrock-server-1.20.20.20.zip",
+  "block_palette_states": 13141,
+  "item_registry_matches_protocol": 594,
+  "wire_fixtures_origin_protocol": 594,
+  "evidence": "StartGame biome definitions and actor identifiers captured from official offline BDS 1.20.20.20 block sound and particle registries exported from the same binary",
+  "files": {
+    "level_sound_id_map.json": "46097ed0d0aaea7f244d10f9ce3383ab53523ef0464ace1585914573e31b7654",
+    "biome_definitions.nbt": "0df6288e6b2f4ba7e1a12ff5306acaf4c61898f73890cf7c8a427718b24279ea",
+    "particle_id_map.json": "5f7a6a3a8f3ef02a7d3933850b4c93c98aa21777607aa321d3d035bc4c04290a",
+    "entity_identifiers.nbt": "79255ae5868878bef1b34f90d067c3990edb8135e21063ba29f65be0654bbceb",
+    "states_598.txt.gz": "1ed24590d67a83d9ad728b1e30e1b01d8550c2e3722d880aff0d89e82a6b9ebe"
+  }
+}
