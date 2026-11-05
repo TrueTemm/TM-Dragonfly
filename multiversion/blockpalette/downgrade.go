@@ -44,6 +44,12 @@ var schemaFiles = []struct {
 	file string
 	to   int
 }{
+	{"0201_1.20.0.23_beta_to_1.20.10.24_beta.json", ver(1, 20, 10)},
+	{"0211_1.20.10.24_beta_to_1.20.20.23_beta.json", ver(1, 20, 20)},
+	{"0221_1.20.20.23_beta_to_1.20.30.22_beta.json", ver(1, 20, 30)},
+	{"0231_1.20.30.22_beta_to_1.20.40.24_beta.json", ver(1, 20, 40)},
+	{"0241_1.20.40.24_beta_to_1.20.50.23_beta.json", ver(1, 20, 50)},
+	{"0251_1.20.50.23_beta_to_1.20.60.26_beta.json", ver(1, 20, 60)},
 	{"0261_1.20.60.26_beta_to_1.20.70.24_beta.json", ver(1, 20, 70)},
 	{"0271_1.20.70.24_beta_to_1.20.80.24_beta.json", ver(1, 20, 80)},
 	{"0281_1.20.80.24_beta_to_1.21.0.25_beta.json", ver(1, 21, 0)},
@@ -58,6 +64,12 @@ var schemaFiles = []struct {
 func ver(major, minor, patch int) int { return major*1e6 + minor*1e3 + patch }
 
 var statePalettes = map[uint32]*statePalette{
+	589:  {file: 589, version: ver(1, 20, 0), sequential: true},
+	594:  {file: 594, version: ver(1, 20, 10), sequential: true},
+	598:  {file: 598, version: ver(1, 20, 10), sequential: true},
+	618:  {file: 618, version: ver(1, 20, 30), sequential: true},
+	622:  {file: 622, version: ver(1, 20, 40), sequential: true},
+	630:  {file: 630, version: ver(1, 20, 50), sequential: true},
 	649:  {file: 649, version: ver(1, 20, 60)}, // real 1.20.60 states, 1.20 schemas
 	662:  {file: 686, version: ver(1, 20, 70)}, // no 1.20 schema, 1.21.0 shapes
 	671:  {file: 686, version: ver(1, 20, 80)}, // no 1.20 schema, 1.21.0 shapes
@@ -88,6 +100,7 @@ type statePalette struct {
 	version int
 
 	incomplete bool
+	sequential bool
 
 	once     sync.Once
 	toOld    []uint32
@@ -112,6 +125,9 @@ func HashFor(protocol, rid uint32) uint32 {
 	if rid < uint32(len(p.toOld)) {
 		return p.toOld[rid]
 	}
+	if p.sequential {
+		return p.toOld[world.DefaultBlockRegistry.AirRuntimeID()]
+	}
 	return HashOf(rid)
 }
 
@@ -126,6 +142,9 @@ func RuntimeIDFor(protocol, hash uint32) uint32 {
 		if rid, ok := p.toLatest[hash]; ok {
 			return rid
 		}
+	}
+	if p, ok := statePalettes[protocol]; ok && p.sequential {
+		return world.DefaultBlockRegistry.AirRuntimeID()
 	}
 	return RuntimeIDFromHash(hash)
 }
@@ -215,6 +234,7 @@ func (p *statePalette) build() {
 		}
 		sc := bufio.NewScanner(gz)
 		sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		oldIndex := uint32(0)
 		seen := make(map[string]struct{}, 17000)
 		old := &oldPalette{byKey: make(map[string]uint32, 17000), first: make(map[string]uint32, 1200),
 			props: make(map[string]map[string]bool, 1200)}
@@ -226,6 +246,10 @@ func (p *statePalette) build() {
 			seen[line] = struct{}{}
 			name, props := parseStateLine(line)
 			oldHash := world.NetworkBlockHash(name, props)
+			if p.sequential {
+				oldHash = oldIndex // preserve palette order
+			}
+			oldIndex++
 			old.byKey[untypedKey(name, props)] = oldHash
 			if _, first := old.first[name]; !first {
 				old.first[name] = oldHash
@@ -254,8 +278,7 @@ func (p *statePalette) build() {
 			}
 		}
 
-		infoUpdate := world.NetworkBlockHash("minecraft:info_update", nil)
-		_, hasPlaceholder := p.toLatest[infoUpdate]
+		infoUpdate, hasPlaceholder := old.byKey[untypedKey("minecraft:info_update", nil)]
 		p.unmatchedLatestNames = make(map[string]int)
 		p.substituted = make(map[string]string)
 		for rid := uint32(0); rid < n; rid++ {

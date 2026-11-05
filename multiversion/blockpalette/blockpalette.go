@@ -29,9 +29,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sandertv/gophertunnel/minecraft/protocol"
-
 	"github.com/df-mc/dragonfly/server/world"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
 //go:embed data/p786.txt.gz
@@ -64,6 +63,12 @@ type palette struct {
 
 var palettes = map[uint32]*palette{
 
+	589: {},
+	594: {},
+	598: {},
+	618: {},
+	622: {},
+	630: {},
 	649: {}, // 1.20.60, hash path
 	662: {}, // 1.20.70, hash path
 	671: {}, // 1.20.80, hash path
