@@ -19,35 +19,11 @@ TM-Dragonfly Project
 
 package v844
 
-import "github.com/sandertv/gophertunnel/minecraft/protocol"
+import (
+	"github.com/df-mc/dragonfly/multiversion/v786"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
+)
 
 func GameRuleLegacy(io protocol.IO, x *protocol.GameRule) {
-	io.String(&x.Name)
-	io.Bool(&x.CanBeModifiedByPlayer)
-
-	var t uint32
-	switch x.Value.(type) {
-	case bool:
-		t = 1
-	case uint32:
-		t = 2
-	case float32:
-		t = 3
-	}
-	io.Varuint32(&t)
-
-	switch t {
-	case 1:
-		v, _ := x.Value.(bool)
-		io.Bool(&v)
-		x.Value = v
-	case 2:
-		v, _ := x.Value.(uint32)
-		io.Varuint32(&v)
-		x.Value = v
-	case 3:
-		v, _ := x.Value.(float32)
-		io.Float32(&v)
-		x.Value = v
-	}
+	v786.GameRuleLegacy(io, x)
 }
