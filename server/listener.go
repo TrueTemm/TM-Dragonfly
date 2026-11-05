@@ -29,6 +29,7 @@ import (
 	"github.com/df-mc/dragonfly/multiversion/v2168"
 	"github.com/df-mc/dragonfly/multiversion/v2169"
 	"github.com/df-mc/dragonfly/multiversion/v2193"
+	"github.com/df-mc/dragonfly/multiversion/v630"
 	"github.com/df-mc/dragonfly/multiversion/v649"
 	"github.com/df-mc/dragonfly/multiversion/v662"
 	"github.com/df-mc/dragonfly/multiversion/v671"
@@ -52,6 +53,7 @@ import (
 	"github.com/df-mc/dragonfly/multiversion/v975"
 	"github.com/df-mc/dragonfly/server/session"
 	"github.com/sandertv/gophertunnel/minecraft"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 type Listener interface {
@@ -73,10 +75,16 @@ func (uc UserConfig) minecraftListenConfig(conf Config) minecraft.ListenConfig {
 		ResourcePacks:          conf.Resources,
 		TexturePacksRequired:   conf.ResourcesRequired,
 		Compression:            conf.Compression,
-		Allow:                  conf.Allower.Allow,
-		HTTPClient:             authClient,
+		CompressionSelector: func(proto minecraft.Protocol) packet.Compression {
+			if proto.ID() < 649 {
+				return packet.FlateCompression // legacy deflate framing
+			}
+			return conf.Compression
+		},
+		Allow:      conf.Allower.Allow,
+		HTTPClient: authClient,
 
-		AcceptedProtocols: []minecraft.Protocol{v649.Protocol{}, v662.Protocol{}, v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{}, v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, v2193.Protocol{}, native.Protocol{}},
+		AcceptedProtocols: []minecraft.Protocol{v630.Protocol{Version: 589}, v630.Protocol{Version: 594}, v630.Protocol{Version: 598}, v630.Protocol{Version: 618}, v630.Protocol{Version: 622}, v630.Protocol{}, v649.Protocol{}, v662.Protocol{}, v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{}, v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, v2193.Protocol{}, native.Protocol{}},
 	}
 }
 
@@ -88,7 +96,7 @@ func (uc UserConfig) sharedRakNetListener(conf Config, shared *sharedGameUDP) (L
 	}
 	cfg := uc.minecraftListenConfig(conf)
 	cfg.ErrorLog = conf.Log.With("net origin", "gophertunnel", "transport", "raknet")
-	l, err := cfg.ListenNetwork(sharedRakNetNetwork{conn: mux.raknet}, uc.Network.Address)
+	l, err := cfg.ListenNetwork(legacyRakNet{Network: sharedRakNetNetwork{conn: mux.raknet}}, uc.Network.Address)
 	if err != nil {
 		_ = mux.raknet.Close()
 		_ = mux.ice.Close()
@@ -101,7 +109,7 @@ func (uc UserConfig) sharedRakNetListener(conf Config, shared *sharedGameUDP) (L
 func (uc UserConfig) transportListener(conf Config, transport string) (Listener, error) {
 	cfg := uc.minecraftListenConfig(conf)
 	cfg.ErrorLog = conf.Log.With("net origin", "gophertunnel", "transport", transport)
-	l, err := cfg.Listen(transport, uc.Network.Address)
+	l, err := cfg.ListenNetwork(legacyRakNet{Network: rakNetNetwork(cfg.ErrorLog)}, uc.Network.Address)
 	if err != nil {
 		return nil, fmt.Errorf("create minecraft listener: %w", err)
 	}
