@@ -83,7 +83,17 @@ func (pk *StartGame) Marshal(io protocol.IO) {
 	io.Varint32(&pk.Difficulty)
 	v786.UBlockPos786(io, &pk.WorldSpawn)
 	io.Bool(&pk.AchievementsDisabled)
-	io.Varint32(&pk.EditorWorldType)
+	if p := v786.ProtoOf(io); p != 0 && p < 618 {
+		editor := pk.EditorWorldType != 0
+		io.Bool(&editor)
+		if editor {
+			pk.EditorWorldType = 1
+		} else {
+			pk.EditorWorldType = 0
+		}
+	} else {
+		io.Varint32(&pk.EditorWorldType)
+	}
 	io.Bool(&pk.CreatedInEditor)
 	io.Bool(&pk.ExportedFromEditor)
 	io.Varint32(&pk.DayCycleLockTime)
