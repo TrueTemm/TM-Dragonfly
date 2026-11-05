@@ -20,9 +20,15 @@ TM-Dragonfly Project
 package v786
 
 import (
+	"fmt"
+
+	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
+
+func (r Reader786) StackRequestAction(x *protocol.StackRequestAction) { stackReqAction786(r, x) }
+func (w Writer786) StackRequestAction(x *protocol.StackRequestAction) { stackReqAction786(w, x) }
 
 type ItemStackRequest struct {
 	packet.ItemStackRequest
@@ -69,7 +75,12 @@ func stackReqSlot786(r protocol.IO, x *protocol.StackRequestSlotInfo) {
 func stackReqAction786(r protocol.IO, x *protocol.StackRequestAction) {
 	var id byte
 	if *x != nil {
-		id = stackReqActionID786(*x)
+		var ok bool
+		id, ok = stackReqActionID786(*x)
+		if !ok {
+			r.InvalidValue(fmt.Sprintf("%T", *x), "legacy stack request action", "unsupported action type")
+			return
+		}
 	}
 	r.Uint8(&id)
 	if *x == nil {
@@ -110,33 +121,44 @@ func stackReqAction786(r protocol.IO, x *protocol.StackRequestAction) {
 		r.Varuint32(&a.RecipeNetworkID)
 		if p := ProtoOf(r); p == 0 || p >= 712 {
 			r.Uint8(&a.NumberOfCrafts)
+		} else {
+			a.NumberOfCrafts = 1
 		}
 	case *protocol.CraftCreativeStackRequestAction:
 		r.Varuint32(&a.CreativeItemNetworkID)
 		if p := ProtoOf(r); p == 0 || p >= 712 {
 			r.Uint8(&a.NumberOfCrafts)
+		} else {
+			a.NumberOfCrafts = 1
 		}
 	case *protocol.AutoCraftRecipeStackRequestAction:
 
 		r.Varuint32(&a.RecipeNetworkID)
 		if p := ProtoOf(r); p == 0 || p >= 712 {
 			r.Uint8(&a.NumberOfCrafts)
+		} else {
+			a.NumberOfCrafts = 1
 		}
-		var timesCrafted byte
+		timesCrafted := a.NumberOfCrafts
 		r.Uint8(&timesCrafted)
+		if p := ProtoOf(r); p != 0 && p < 712 {
+			a.NumberOfCrafts = timesCrafted
+		}
 		protocol.FuncSlice(r, &a.Ingredients, r.ItemDescriptorCount)
 	case *protocol.CraftGrindstoneRecipeStackRequestAction:
 
 		r.Varuint32(&a.RecipeNetworkID)
 		if p := ProtoOf(r); p == 0 || p >= 712 {
 			r.Uint8(&a.NumberOfCrafts)
+		} else {
+			a.NumberOfCrafts = 1
 		}
 		r.Varint32(&a.Cost)
 	case *protocol.CraftRecipeOptionalStackRequestAction:
 
 		r.Varuint32(&a.RecipeNetworkID)
 		if p := ProtoOf(r); p >= 712 && p < 748 {
-			var numberOfCrafts byte
+			numberOfCrafts := byte(1)
 			r.Uint8(&numberOfCrafts)
 		}
 		r.Int32(&a.FilterStringIndex)
@@ -148,8 +170,17 @@ func stackReqAction786(r protocol.IO, x *protocol.StackRequestAction) {
 		}
 	case *protocol.CraftResultsDeprecatedStackRequestAction:
 
-		var results []protocol.ItemStack
+		results := make([]protocol.ItemStack, len(a.ResultItems))
+		for i, it := range a.ResultItems {
+			id, _ := world.ItemRuntimeIDByName(it.Identifier)
+			results[i] = protocol.ItemStack{ItemType: protocol.ItemType{NetworkID: id, MetadataValue: it.MetadataValue}, BlockRuntimeID: it.BlockRuntimeID, Count: it.Count, NBTData: it.NBTData, CanBePlacedOn: it.CanBePlacedOn, CanBreak: it.CanBreak, BlockingTick: it.BlockingTick}
+		}
 		protocol.FuncSlice(r, &results, r.Item)
+		a.ResultItems = make([]protocol.StackRequestItem, len(results))
+		for i, it := range results {
+			name, _ := world.ItemNameByRuntimeID(it.NetworkID)
+			a.ResultItems[i] = protocol.StackRequestItem{Identifier: name, MetadataValue: it.MetadataValue, BlockRuntimeID: it.BlockRuntimeID, Count: it.Count, NBTData: it.NBTData, CanBePlacedOn: it.CanBePlacedOn, CanBreak: it.CanBreak, BlockingTick: it.BlockingTick}
+		}
 		r.Uint8(&a.TimesCrafted)
 	default:
 
@@ -157,46 +188,46 @@ func stackReqAction786(r protocol.IO, x *protocol.StackRequestAction) {
 	}
 }
 
-func stackReqActionID786(x protocol.StackRequestAction) byte {
+func stackReqActionID786(x protocol.StackRequestAction) (byte, bool) {
 	switch x.(type) {
 	case *protocol.TakeStackRequestAction:
-		return protocol.StackRequestActionTake
+		return protocol.StackRequestActionTake, true
 	case *protocol.PlaceStackRequestAction:
-		return protocol.StackRequestActionPlace
+		return protocol.StackRequestActionPlace, true
 	case *protocol.SwapStackRequestAction:
-		return protocol.StackRequestActionSwap
+		return protocol.StackRequestActionSwap, true
 	case *protocol.DropStackRequestAction:
-		return protocol.StackRequestActionDrop
+		return protocol.StackRequestActionDrop, true
 	case *protocol.DestroyStackRequestAction:
-		return protocol.StackRequestActionDestroy
+		return protocol.StackRequestActionDestroy, true
 	case *protocol.ConsumeStackRequestAction:
-		return protocol.StackRequestActionConsume
+		return protocol.StackRequestActionConsume, true
 	case *protocol.CreateStackRequestAction:
-		return protocol.StackRequestActionCreate
+		return protocol.StackRequestActionCreate, true
 	case *protocol.LabTableCombineStackRequestAction:
-		return protocol.StackRequestActionLabTableCombine
+		return protocol.StackRequestActionLabTableCombine, true
 	case *protocol.BeaconPaymentStackRequestAction:
-		return protocol.StackRequestActionBeaconPayment
+		return protocol.StackRequestActionBeaconPayment, true
 	case *protocol.MineBlockStackRequestAction:
-		return protocol.StackRequestActionMineBlock
+		return protocol.StackRequestActionMineBlock, true
 	case *protocol.CraftRecipeStackRequestAction:
-		return protocol.StackRequestActionCraftRecipe
+		return protocol.StackRequestActionCraftRecipe, true
 	case *protocol.AutoCraftRecipeStackRequestAction:
-		return protocol.StackRequestActionCraftRecipeAuto
+		return protocol.StackRequestActionCraftRecipeAuto, true
 	case *protocol.CraftCreativeStackRequestAction:
-		return protocol.StackRequestActionCraftCreative
+		return protocol.StackRequestActionCraftCreative, true
 	case *protocol.CraftRecipeOptionalStackRequestAction:
-		return protocol.StackRequestActionCraftRecipeOptional
+		return protocol.StackRequestActionCraftRecipeOptional, true
 	case *protocol.CraftGrindstoneRecipeStackRequestAction:
-		return protocol.StackRequestActionCraftGrindstone
+		return protocol.StackRequestActionCraftGrindstone, true
 	case *protocol.CraftLoomRecipeStackRequestAction:
-		return protocol.StackRequestActionCraftLoom
+		return protocol.StackRequestActionCraftLoom, true
 	case *protocol.CraftNonImplementedStackRequestAction:
-		return protocol.StackRequestActionCraftNonImplementedDeprecated
+		return 18, true
 	case *protocol.CraftResultsDeprecatedStackRequestAction:
-		return protocol.StackRequestActionCraftResultsDeprecated
+		return 19, true // pre 2225 action ID
 	default:
-		return 0
+		return 0, false
 	}
 }
 
@@ -234,9 +265,9 @@ func lookupStackReqAction786(id byte, x *protocol.StackRequestAction) bool {
 		*x = &protocol.CraftGrindstoneRecipeStackRequestAction{}
 	case protocol.StackRequestActionCraftLoom:
 		*x = &protocol.CraftLoomRecipeStackRequestAction{}
-	case protocol.StackRequestActionCraftNonImplementedDeprecated:
+	case 18:
 		*x = &protocol.CraftNonImplementedStackRequestAction{}
-	case protocol.StackRequestActionCraftResultsDeprecated:
+	case 19:
 		*x = &protocol.CraftResultsDeprecatedStackRequestAction{}
 	default:
 		return false
