@@ -1,3 +1,22 @@
+/*
+ _____               _____
+|_   _| __ _   _  __|_   _|__ _ __ ___  _ __ ___
+  | || '__| | | |/ _ \| |/ _ \ '_ ` _ \| '_ ` _ \
+  | || |  | |_| |  __/| |  __/ | | | | | | | | | |
+  |_||_|   \__,_|\___||_|\___|_| |_| |_|_| |_| |_|
+
+ _____ __  __       ____                               __ _
+|_   _|  \/  |     |  _ \ _ __ __ _  __ _  ___  _ __  / _| |_   _
+  | | | |\/| |_____| | | | '__/ _` |/ _` |/ _ \| '_ \| |_| | | | |
+  | | | |  | |_____| |_| | | | (_| | (_| | (_) | | | |  _| | |_| |
+  |_| |_|  |_|     |____/|_|  \__,_|\__, |\___/|_| |_|_| |_|\__, |
+                                    |___/                   |___/
+
+@author TrueTemm
+@link   https://github.com/TrueTemm
+TM-Dragonfly Project
+*/
+
 package v2193
 
 import (
@@ -9,8 +28,8 @@ import (
 type Reader2193 struct{ *protocol.Reader }
 type Writer2193 struct{ *protocol.Writer }
 
-func (r Reader2193) StackRequestAction(x *protocol.StackRequestAction) { stackAction2193(r, x) }
-func (w Writer2193) StackRequestAction(x *protocol.StackRequestAction) { stackAction2193(w, x) }
+func (r Reader2193) StackRequestAction(x *protocol.StackRequestAction) { StackRequestAction2193(r, x) }
+func (w Writer2193) StackRequestAction(x *protocol.StackRequestAction) { StackRequestAction2193(w, x) }
 
 func legacyActionIndex2193(x protocol.StackRequestAction) (byte, bool) {
 	switch x.(type) {
@@ -99,14 +118,7 @@ func makeAction2193(index byte) (protocol.StackRequestAction, bool) {
 }
 
 func fullContainer2193(io protocol.IO, c *protocol.FullContainerName) {
-	io.Uint8(&c.ContainerID)
-	dynamic, _ := c.DynamicContainerID.Value()
-	io.Uint32(&dynamic)
-	if dynamic != 0 {
-		c.DynamicContainerID = protocol.Option(dynamic)
-	} else {
-		c.DynamicContainerID = protocol.Optional[uint32]{}
-	}
+	protocol.Single(io, c)
 }
 
 func stackSlot2193(io protocol.IO, x *protocol.StackRequestSlotInfo) {
@@ -115,7 +127,7 @@ func stackSlot2193(io protocol.IO, x *protocol.StackRequestSlotInfo) {
 	io.Int32(&x.StackNetworkID)
 }
 
-func stackAction2193(io protocol.IO, x *protocol.StackRequestAction) {
+func StackRequestAction2193(io protocol.IO, x *protocol.StackRequestAction) {
 	var id uint8
 	if *x != nil {
 		var ok bool
@@ -125,7 +137,18 @@ func stackAction2193(io protocol.IO, x *protocol.StackRequestAction) {
 			return
 		}
 	}
-	io.Uint8(&id)
+	variant := uint32(id)
+	io.Varuint32(&variant)
+	legacyID := id
+	if id >= 7 {
+		legacyID += 2 // skip unused container actions
+	}
+	io.Uint8(&legacyID)
+	if variant > 17 {
+		io.UnknownEnumOption(variant, "2193 stack action variant")
+		return
+	}
+	id = byte(variant)
 	if *x == nil {
 		a, ok := makeAction2193(id)
 		if !ok {

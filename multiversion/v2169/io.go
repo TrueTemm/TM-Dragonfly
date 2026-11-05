@@ -21,6 +21,7 @@ package v2169
 
 import (
 	"github.com/df-mc/dragonfly/multiversion/native"
+	"github.com/df-mc/dragonfly/multiversion/v2193"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
@@ -153,4 +154,11 @@ func inputFlagList(r protocol.IO, x *protocol.InputFlags, size int) {
 		return
 	}
 	protocol.InputFlagList(r, x, size)
+}
+
+func (r Reader2169) StackRequestAction(x *protocol.StackRequestAction) {
+	v2193.StackRequestAction2193(r, x)
+}
+func (w Writer2169) StackRequestAction(x *protocol.StackRequestAction) {
+	v2193.StackRequestAction2193(w, x)
 }
