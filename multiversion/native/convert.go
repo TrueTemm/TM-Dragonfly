@@ -20,11 +20,10 @@ TM-Dragonfly Project
 package native
 
 import (
-	"github.com/sandertv/gophertunnel/minecraft/protocol"
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 	"github.com/df-mc/dragonfly/multiversion/blockpalette"
 	"github.com/df-mc/dragonfly/multiversion/v786"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func convertFromLatest(pk packet.Packet) []packet.Packet {
@@ -71,7 +70,7 @@ func FromLatestFor(proto uint32, pk packet.Packet) []packet.Packet {
 		out.EntityMetadata[protocol.EntityDataKeyVariant] = int32(blockpalette.HashFor(proto, uint32(v)))
 		return []packet.Packet{&out}
 	case *packet.LevelSoundEvent:
-		if !v786.BlockSoundCarriesRuntimeID(pk.SoundType) {
+		if !v786.BlockSoundCarriesRuntimeID(pk.SoundType) || pk.ExtraData == -1 {
 			return []packet.Packet{pk}
 		}
 		out := *pk
@@ -96,7 +95,7 @@ func ToLatestFor(proto uint32, pk packet.Packet) []packet.Packet {
 		out.Extra = v786.TranslateBlockChangeEntries(pk.Extra, proto, false)
 		return []packet.Packet{&out}
 	case *packet.LevelSoundEvent:
-		if !v786.BlockSoundCarriesRuntimeID(pk.SoundType) {
+		if !v786.BlockSoundCarriesRuntimeID(pk.SoundType) || pk.ExtraData == -1 {
 			return []packet.Packet{pk}
 		}
 		out := *pk
