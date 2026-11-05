@@ -1,12 +1,12 @@
 <h1 align="center">TM-Dragonfly</h1>
 
 <p align="center">
-  Minecraft: Bedrock server software in Go — one listener for every client from 1.20.60 to 1.26.60.
+  Minecraft: Bedrock server software in Go — one listener for every client from 1.20.0 to 1.26.60.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/go-1.26+-00ADD8?logo=go&logoColor=white" alt="Go 1.26+">
-  <img src="https://img.shields.io/badge/bedrock-1.20.60%20→%201.26.60-9BE564" alt="Bedrock 1.20.60 to 1.26.60">
+  <img src="https://img.shields.io/badge/bedrock-1.20.0%20→%201.26.60-9BE564" alt="Bedrock 1.20.0 to 1.26.60">
   <img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="MIT License">
   <a href="https://t.me/TMDragonfly"><img src="https://img.shields.io/badge/telegram-@TMDragonfly-229ED9?logo=telegram&logoColor=white" alt="Telegram"></a>
 </p>
@@ -14,13 +14,13 @@
 ## What is this?
 
 A fork of [Dragonfly](https://github.com/df-mc/dragonfly) with full **multiversion** support:
-every client from Bedrock **1.20.60 to 1.26.60** joins the same server, same port, no proxy. The
+every client from Bedrock **1.20.0 to 1.26.60** joins the same server, same port, no proxy. The
 newest version runs natively; older ones are translated per client. Still the full Dragonfly API
 underneath — build your game on top of it as a Go library.
 
 ## Features
 
-- **Multiversion** — 1.20.60 … 1.26.60 on the same server and game port.
+- **Multiversion** — 1.20.0 … 1.26.60 on the same server and game port.
 - **RakNet and NetherNet** — UDP gameplay with HTTP/HTTPS signaling for newer clients.
 - **Config** — world mode (`current` or `flat`), render distance, difficulty, spawn protection.
 - **Operators** — kept in `ops.yml`, with in-game commands: `weather`, `time set`, `gamemode`, `tp`, `give` (tab-complete items), `about`.
@@ -67,6 +67,6 @@ printed only when a NetherNet listener fails to open or stops with an error.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Built on [Dragonfly](https://github.com/df-mc/dragonfly) by Dragonfly Tech.
+MIT — see [LICENSE](LICENSE). Credits: [Dragonfly](https://github.com/df-mc/dragonfly).
 
 Telegram: [@TMDragonfly](https://t.me/TMDragonfly)
