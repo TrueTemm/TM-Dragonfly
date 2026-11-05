@@ -24,6 +24,7 @@ import (
 
 	"github.com/df-mc/dragonfly/multiversion/blockpalette"
 	"github.com/df-mc/dragonfly/multiversion/itemdata"
+	"github.com/df-mc/dragonfly/server/world"
 	"github.com/sandertv/gophertunnel/minecraft/nbt"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
@@ -240,16 +241,36 @@ func (w Writer786) ItemInstance(i *protocol.ItemInstance) {
 func (w Writer786) EntityMetadata(x *protocol.EntityMetadata) { writeEntityMetadata786(w.Writer, x) }
 
 func translateItemIDs(proto uint32, x protocol.ItemStack) protocol.ItemStack {
-	x.NetworkID = itemdata.Translate(proto, x.NetworkID)
-	if x.BlockRuntimeID != 0 {
+	block := x.BlockRuntimeID != 0 || legacyBlockItem(proto, x, false)
+	x.NetworkID, x.MetadataValue = itemdata.TranslateStack(proto, x.NetworkID, x.MetadataValue)
+	if block {
 		x.BlockRuntimeID = int32(blockpalette.HashFor(proto, uint32(x.BlockRuntimeID)))
 	}
 	return x
 }
 
 func untranslateItemIDs(proto uint32, x *protocol.ItemStack) {
-	x.NetworkID = itemdata.ReverseTranslate(proto, x.NetworkID)
-	if x.BlockRuntimeID != 0 {
+	x.NetworkID, x.MetadataValue = itemdata.ReverseTranslateStack(proto, x.NetworkID, x.MetadataValue)
+	if x.BlockRuntimeID != 0 || legacyBlockItem(proto, *x, true) {
 		x.BlockRuntimeID = int32(blockpalette.RuntimeIDFor(proto, uint32(x.BlockRuntimeID)))
 	}
+}
+
+func legacyBlockItem(proto uint32, x protocol.ItemStack, inbound bool) bool {
+	if proto == 0 || proto > 630 || x.NetworkID == 0 {
+		return false
+	}
+	it, ok := world.ItemByRuntimeID(x.NetworkID, int16(x.MetadataValue))
+	if !ok {
+		return false
+	}
+	b, block := it.(world.Block)
+	if !block {
+		return false
+	}
+	rid := uint32(0)
+	if inbound {
+		rid = blockpalette.RuntimeIDFor(proto, 0)
+	}
+	return world.DefaultBlockRegistry.BlockRuntimeID(b) == rid
 }
