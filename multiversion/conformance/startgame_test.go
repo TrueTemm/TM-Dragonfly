@@ -23,14 +23,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sandertv/gophertunnel/minecraft"
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 	"github.com/df-mc/dragonfly/multiversion/blockpalette"
 	"github.com/df-mc/dragonfly/multiversion/native"
 	"github.com/df-mc/dragonfly/multiversion/v1001"
 	"github.com/df-mc/dragonfly/multiversion/v2168"
 	"github.com/df-mc/dragonfly/multiversion/v2169"
+	"github.com/df-mc/dragonfly/multiversion/v2193"
+	"github.com/df-mc/dragonfly/multiversion/v630"
 	"github.com/df-mc/dragonfly/multiversion/v649"
 	"github.com/df-mc/dragonfly/multiversion/v662"
 	"github.com/df-mc/dragonfly/multiversion/v671"
@@ -52,12 +51,14 @@ import (
 	"github.com/df-mc/dragonfly/multiversion/v924"
 	"github.com/df-mc/dragonfly/multiversion/v944"
 	"github.com/df-mc/dragonfly/multiversion/v975"
+	"github.com/sandertv/gophertunnel/minecraft"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func protocols() []minecraft.Protocol {
 	return []minecraft.Protocol{
-		v649.Protocol{}, v662.Protocol{}, v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{},
-		v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, native.Protocol{},
+		v630.Protocol{Version: 589}, v630.Protocol{Version: 594}, v630.Protocol{Version: 598}, v630.Protocol{Version: 618}, v630.Protocol{Version: 622}, v630.Protocol{}, v649.Protocol{}, v662.Protocol{}, v671.Protocol{}, v685.Protocol{}, v686.Protocol{}, v712.Protocol{}, v729.Protocol{}, v748.Protocol{}, v766.Protocol{}, v776.Protocol{}, v786.Protocol{}, v800.Protocol{}, v818.Protocol{}, v819.Protocol{},
+		v827.Protocol{}, v844.Protocol{}, v859.Protocol{}, v898.Protocol{}, v924.Protocol{}, v944.Protocol{}, v975.Protocol{}, v1001.Protocol{}, v2168.Protocol{}, v2169.Protocol{}, v2193.Protocol{}, native.Protocol{},
 	}
 }
 
@@ -69,7 +70,7 @@ func TestStartGameUsesBlockNetworkIDHashes(t *testing.T) {
 		if len(out) != 1 {
 			t.Fatalf("protocol %v: StartGame converted into %v packets, want exactly 1", proto.ID(), len(out))
 		}
-		remapped := blockpalette.Supported(uint32(proto.ID()))
+		remapped := blockpalette.Supported(uint32(proto.ID())) && proto.ID() > 630
 		field := reflect.ValueOf(out[0]).Elem().FieldByName("UseBlockNetworkIDHashes")
 		if !field.IsValid() {
 			t.Fatalf("protocol %v: converted StartGame (%T) has no UseBlockNetworkIDHashes field", proto.ID(), out[0])

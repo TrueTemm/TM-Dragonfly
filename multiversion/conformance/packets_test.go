@@ -22,10 +22,10 @@ package conformance
 import (
 	"testing"
 
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
+	"github.com/df-mc/dragonfly/multiversion/v630"
 	"github.com/df-mc/dragonfly/multiversion/v786"
 	"github.com/df-mc/dragonfly/multiversion/v800"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func TestPlayerListNeverPassedThrough(t *testing.T) {
@@ -43,6 +43,10 @@ func TestPlayerListNeverPassedThrough(t *testing.T) {
 			t.Errorf("protocol %v: PlayerList passed through in the VENDORED wire — the packet-level "+
 				"ActionType byte every protocol 786-898 expects is missing, so the client reads the entry "+
 				"count as ActionType and the player never joins the list (see v800/player_list.go)", proto.ID())
+		case *v630.PlayerList:
+			if proto.ID() > 630 {
+				t.Errorf("protocol %v uses the 630 player list", proto.ID())
+			}
 		case *v786.PlayerList:
 
 			if proto.ID() > 786 {

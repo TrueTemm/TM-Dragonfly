@@ -24,9 +24,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 	"github.com/df-mc/dragonfly/server/world"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func latestPools() map[uint32]func() packet.Packet {
@@ -45,6 +44,12 @@ func isLatest(pk packet.Packet) bool {
 }
 
 var knownDisagreements = map[int32]map[uint32]bool{
+	589:  {130: true, 131: true, 135: true, 147: true},
+	594:  {130: true, 131: true, 135: true, 147: true},
+	598:  {130: true, 131: true, 135: true, 147: true},
+	618:  {130: true, 131: true, 135: true, 147: true},
+	622:  {130: true, 131: true, 135: true, 147: true},
+	630:  {130: true, 131: true, 135: true, 147: true},
 	649:  {130: true, 131: true, 135: true, 147: true}, // 130/131 swapped below 685
 	662:  {130: true, 131: true, 135: true, 147: true}, // 130/131 swapped below 685
 	671:  {130: true, 131: true, 135: true, 147: true}, // 130/131 swapped at 671
