@@ -50,7 +50,9 @@ func opOnly(o *ops, src cmd.Source) bool {
 type aboutCmd struct{}
 
 func (aboutCmd) Run(_ cmd.Source, out *cmd.Output, _ *world.Tx) {
-	out.Printf("§aTM-Dragonfly§r by TrueTemm — multiversion Bedrock 1.20.60 … 1.26.50")
+	out.Printf("§aTM-Dragonfly§r by TrueTemm — multiversion Bedrock 1.20.0 … 1.26.60")
+	out.Printf("Build %s", buildStamp())
+	out.Printf("Preview 1.20.20.20 — protocol 598")
 }
 
 type weatherCmd struct {
@@ -193,8 +195,8 @@ func (c deopCmd) Run(_ cmd.Source, out *cmd.Output, _ *world.Tx) {
 
 type itemName string
 
-func (itemName) Type() string                 { return "item" }
-func (itemName) Options(cmd.Source) []string  { return itemOptions }
+func (itemName) Type() string                { return "item" }
+func (itemName) Options(cmd.Source) []string { return itemOptions }
 
 var itemOptions = loadItemOptions() // every registered item, for tab-complete
 
