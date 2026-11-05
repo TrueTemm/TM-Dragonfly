@@ -20,14 +20,13 @@ TM-Dragonfly Project
 package v649
 
 import (
-	"github.com/sandertv/gophertunnel/minecraft"
-	"github.com/sandertv/gophertunnel/minecraft/protocol"
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 	"github.com/df-mc/dragonfly/multiversion/itemdata"
 	"github.com/df-mc/dragonfly/multiversion/v686"
 	"github.com/df-mc/dragonfly/multiversion/v766"
 	"github.com/df-mc/dragonfly/multiversion/v786"
+	"github.com/sandertv/gophertunnel/minecraft"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 type Protocol struct{}
@@ -95,7 +94,7 @@ func (onScreen649) ID() uint32 { return v786.IDMapCreateLockedCopy }
 
 var argType649 = map[uint32]uint32{47: 43, 56: 44, 64: 52, 65: 53, 67: 55, 70: 58, 74: 62, 84: 71, 87: 74} // native arg type to 1.20.60
 
-func remapCommands649(pk *packet.AvailableCommands) *packet.AvailableCommands {
+func RemapCommands(pk *packet.AvailableCommands) *packet.AvailableCommands {
 	cp := *pk
 	cp.Commands = make([]protocol.Command, len(pk.Commands))
 	copy(cp.Commands, pk.Commands)
@@ -130,7 +129,7 @@ func (p Protocol) ConvertFromLatest(pk packet.Packet, conn *minecraft.Conn) []pa
 	case *packet.OnScreenTextureAnimation:
 		return []packet.Packet{&onScreen649{pk}}
 	case *packet.AvailableCommands:
-		if out, ok := v686.FromLatestShared(uint32(p.ID()), remapCommands649(pk)); ok {
+		if out, ok := v686.FromLatestShared(uint32(p.ID()), RemapCommands(pk)); ok {
 			return out
 		}
 		return nil

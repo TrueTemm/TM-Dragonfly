@@ -20,12 +20,11 @@ TM-Dragonfly Project
 package v686
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/v729"
+	"github.com/df-mc/dragonfly/multiversion/v786"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
-	"github.com/df-mc/dragonfly/multiversion/v729"
-	"github.com/df-mc/dragonfly/multiversion/v786"
 )
 
 const (
@@ -116,7 +115,9 @@ type Disconnect struct {
 func (*Disconnect) ID() uint32 { return v786.IDDisconnect }
 
 func (pk *Disconnect) Marshal(io protocol.IO) {
-	io.Varint32(&pk.Reason)
+	if p := v786.ProtoOf(io); p == 0 || p >= 622 {
+		io.Varint32(&pk.Reason)
+	}
 	io.Bool(&pk.HideDisconnectionScreen)
 	if !pk.HideDisconnectionScreen {
 		io.String(&pk.Message)
@@ -297,7 +298,9 @@ func (pk *ResourcePacksInfo) Marshal(io protocol.IO) {
 	io.Bool(&pk.ForcingServerPacks)
 	v786.SliceUint16Length786(io, &pk.BehaviourPacks)
 	v786.SliceUint16Length786(io, &pk.TexturePacks)
-	protocol.Slice(io, &pk.PackURLs)
+	if p := v786.ProtoOf(io); p == 0 || p >= 618 {
+		protocol.Slice(io, &pk.PackURLs)
+	}
 }
 
 func fromLatestResourcePacksInfo(pk *packet.ResourcePacksInfo) *ResourcePacksInfo {
