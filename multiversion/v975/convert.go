@@ -20,11 +20,10 @@ TM-Dragonfly Project
 package v975
 
 import (
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 	"github.com/df-mc/dragonfly/multiversion/itemdata"
 	"github.com/df-mc/dragonfly/multiversion/v786"
 	"github.com/df-mc/dragonfly/multiversion/v944"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 func applyDeltas975(p packet.Pool) {
@@ -79,7 +78,11 @@ func convertFromLatest(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
 		return []packet.Packet{&MobEquipment{EntityRuntimeID: pk.EntityRuntimeID, NewItem: pk.NewItem,
 			InventorySlot: pk.InventorySlot, HotBarSlot: pk.HotBarSlot, WindowID: pk.WindowID}}, true
 	case *packet.LevelSoundEvent:
-		return []packet.Packet{&LevelSoundEvent{LevelSoundEvent: *v786.FromLatestLevelSoundEvent786(proto, pk)}}, true
+		out := v786.FromLatestLevelSoundEvent786(proto, pk)
+		if out == nil {
+			return nil, true
+		}
+		return []packet.Packet{&LevelSoundEvent{LevelSoundEvent: *out}}, true
 	case *packet.PlaySound:
 		return []packet.Packet{&PlaySound{PlaySound: v786.PlaySound{SoundName: pk.SoundName, Position: pk.Position,
 			Volume: pk.Volume, Pitch: pk.Pitch}}}, true
@@ -112,6 +115,9 @@ func convertToLatest(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
 			InventorySlot: pk.InventorySlot, HotBarSlot: pk.HotBarSlot, WindowID: pk.WindowID}}, true
 	case *LevelSoundEvent:
 		out := v786.ToLatestLevelSoundEvent786(proto, &pk.LevelSoundEvent)
+		if out == nil {
+			return nil, true
+		}
 		out.FireAtPosition = pk.FireAtPosition
 		return []packet.Packet{out}, true
 	case *PlaySound:

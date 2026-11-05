@@ -20,11 +20,10 @@ TM-Dragonfly Project
 package v776
 
 import (
+	"github.com/df-mc/dragonfly/multiversion/v786"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
-	"github.com/df-mc/dragonfly/multiversion/v786"
 )
 
 type LevelSoundEvent struct {
@@ -49,6 +48,9 @@ func (pk *LevelSoundEvent) Marshal(io protocol.IO) {
 
 func fromLatestLevelSoundEvent(proto uint32, pk *packet.LevelSoundEvent) *LevelSoundEvent {
 	x := v786.FromLatestLevelSoundEvent786(proto, pk)
+	if x == nil {
+		return nil
+	}
 	return &LevelSoundEvent{SoundType: x.SoundType, Position: x.Position, ExtraData: x.ExtraData,
 		EntityType: x.EntityType, BabyMob: x.BabyMob, DisableRelativeVolume: x.DisableRelativeVolume}
 }

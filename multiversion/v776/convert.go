@@ -22,10 +22,9 @@ package v776
 import (
 	_ "embed"
 
-	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
-
 	"github.com/df-mc/dragonfly/multiversion/itemdata"
 	"github.com/df-mc/dragonfly/multiversion/v786"
+	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
 )
 
 //go:embed biome_definitions_554.dat
@@ -50,7 +49,11 @@ func ToLatestShared(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
 func convertFromLatest(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
 	switch pk := pk.(type) {
 	case *packet.LevelSoundEvent:
-		return []packet.Packet{fromLatestLevelSoundEvent(proto, pk)}, true
+		out := fromLatestLevelSoundEvent(proto, pk)
+		if out == nil {
+			return nil, true
+		}
+		return []packet.Packet{out}, true
 	case *packet.ClientMovementPredictionSync:
 		return []packet.Packet{fromLatestClientMovementPredictionSync(pk)}, true
 	case *packet.SetHud:
@@ -72,7 +75,11 @@ func convertFromLatest(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
 func convertToLatest(proto uint32, pk packet.Packet) ([]packet.Packet, bool) {
 	switch pk := pk.(type) {
 	case *LevelSoundEvent:
-		return []packet.Packet{toLatestLevelSoundEvent(proto, pk)}, true
+		out := toLatestLevelSoundEvent(proto, pk)
+		if out == nil {
+			return nil, true
+		}
+		return []packet.Packet{out}, true
 	case *ClientMovementPredictionSync:
 		return []packet.Packet{toLatestClientMovementPredictionSync(pk)}, true
 	case *SetHud:

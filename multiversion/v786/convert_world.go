@@ -126,9 +126,12 @@ func fromLatestSubChunkEntry786(proto uint32, x protocol.SubChunkEntry) SubChunk
 }
 
 func ToLatestLevelSoundEvent786(proto uint32, pk *LevelSoundEvent) *packet.LevelSoundEvent {
-	name := soundIDToName786[pk.SoundType]
+	name, ok := SoundNameFor(proto, pk.SoundType)
+	if !ok {
+		return nil
+	}
 	extra := pk.ExtraData
-	if blockSoundExtraData[name] {
+	if blockSoundExtraData[name] && extra != -1 {
 		extra = int32(blockpalette.RuntimeIDFor(proto, uint32(pk.ExtraData)))
 	}
 	return &packet.LevelSoundEvent{
@@ -137,12 +140,16 @@ func ToLatestLevelSoundEvent786(proto uint32, pk *LevelSoundEvent) *packet.Level
 	}
 }
 func FromLatestLevelSoundEvent786(proto uint32, pk *packet.LevelSoundEvent) *LevelSoundEvent {
+	id, ok := SoundIDFor(proto, pk.SoundType)
+	if !ok {
+		return nil
+	}
 	extra := pk.ExtraData
-	if blockSoundExtraData[pk.SoundType] {
+	if blockSoundExtraData[pk.SoundType] && extra != -1 {
 		extra = int32(blockpalette.HashFor(proto, uint32(pk.ExtraData)))
 	}
 	return &LevelSoundEvent{
-		SoundType: soundNameToID786[pk.SoundType], Position: pk.Position, ExtraData: extra, EntityType: pk.EntityType,
+		SoundType: id, Position: pk.Position, ExtraData: extra, EntityType: pk.EntityType,
 		BabyMob: pk.BabyMob, DisableRelativeVolume: pk.DisableRelativeVolume, EntityUniqueID: pk.EntityUniqueID,
 	}
 }

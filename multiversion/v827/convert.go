@@ -252,7 +252,7 @@ func convertToLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok bo
 	case *v786.CreativeContent:
 		return []packet.Packet{v786.ToLatestCreativeContent786(pk)}, true
 	case *v786.LevelSoundEvent:
-		return []packet.Packet{v786.ToLatestLevelSoundEvent786(proto, pk)}, true
+		return v786.LevelSoundPacketsToLatest(proto, pk), true
 	case *v786.ItemStackRequest:
 		return []packet.Packet{v786.ToLatestItemStackRequest(pk)}, true
 	case *v786.PlayerSkin:
@@ -312,7 +312,7 @@ func convertFromLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok 
 	case *packet.CreativeContent:
 		return []packet.Packet{v786.FromLatestCreativeContent786(pk)}, true
 	case *packet.LevelSoundEvent:
-		return []packet.Packet{v786.FromLatestLevelSoundEvent786(proto, pk)}, true
+		return v786.LevelSoundPacketsFromLatest(proto, pk), true
 	case *packet.LevelEvent:
 		return []packet.Packet{v786.FromLatestLevelEvent(pk, proto)}, true
 	case *packet.ItemStackResponse:
