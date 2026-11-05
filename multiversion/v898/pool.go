@@ -28,11 +28,12 @@ func applyDeltas898(p packet.Pool) {
 	p[IDStartGame] = func() packet.Packet { return &StartGame{} }
 	p[IDText] = func() packet.Packet { return &Text{} }
 
-	p[IDAnimate] = func() packet.Packet { return &packet.Animate{} }
+	p[IDAnimate] = func() packet.Packet { return &Animate{} }
 	p[IDCommandRequest] = func() packet.Packet { return &packet.CommandRequest{} }
 	p[IDCommandOutput] = func() packet.Packet { return &packet.CommandOutput{} }
 
 	p[IDInteract] = func() packet.Packet { return &packet.Interact{} }
+	p[IDResourcePackStack] = func() packet.Packet { return &packet.ResourcePackStack{} }
 }
 
 func NewServerPool() packet.Pool {

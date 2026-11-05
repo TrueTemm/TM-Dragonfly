@@ -39,7 +39,9 @@ func convertFromLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok 
 
 		return []packet.Packet{pk}, true
 
-	case *packet.Animate, *packet.CommandOutput, *packet.CommandRequest, *packet.MobEffect:
+	case *packet.Animate:
+		return []packet.Packet{&Animate{Animate: *pk}}, true
+	case *packet.CommandOutput, *packet.CommandRequest, *packet.MobEffect:
 		return []packet.Packet{pk}, true
 	case *packet.AvailableCommands:
 
@@ -68,6 +70,8 @@ func convertFromLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok 
 
 func convertToLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok bool) {
 	switch pk := pk.(type) {
+	case *Animate:
+		return []packet.Packet{&pk.Animate}, true
 	case *StartGame:
 		return []packet.Packet{ToLatestStartGame898(pk)}, true
 	case *Text:
