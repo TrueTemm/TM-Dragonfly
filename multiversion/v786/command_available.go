@@ -47,8 +47,12 @@ func (c *Command786) Marshal(r protocol.IO) {
 	r.Uint16(&c.Flags)
 	r.Uint8(&c.PermissionLevel)
 	r.Uint32(&c.AliasesOffset)
-	protocol.FuncSlice(r, &c.ChainedSubcommandOffsets, r.Uint16)
-	protocol.Slice(r, &c.Overloads)
+	if p := ProtoOf(r); p == 0 || p >= 594 {
+		protocol.FuncSlice(r, &c.ChainedSubcommandOffsets, r.Uint16)
+		protocol.Slice(r, &c.Overloads)
+	} else {
+		protocol.FuncIOSlice(r, &c.Overloads, func(io protocol.IO, overload *protocol.CommandOverload) { protocol.Slice(io, &overload.Parameters) })
+	}
 }
 
 type CommandEnum786 struct {
@@ -122,10 +126,14 @@ func (*AvailableCommands) ID() uint32 {
 
 func (pk *AvailableCommands) Marshal(io protocol.IO) {
 	protocol.FuncSlice(io, &pk.EnumValues, io.String)
-	protocol.FuncSlice(io, &pk.ChainedSubcommandValues, io.String)
+	if p := ProtoOf(io); p == 0 || p >= 594 {
+		protocol.FuncSlice(io, &pk.ChainedSubcommandValues, io.String)
+	}
 	protocol.FuncSlice(io, &pk.Suffixes, io.String)
 	protocol.FuncIOSlice(io, &pk.Enums, commandEnumContext786{EnumValues: pk.EnumValues}.Marshal)
-	protocol.Slice(io, &pk.ChainedSubcommands)
+	if p := ProtoOf(io); p == 0 || p >= 594 {
+		protocol.Slice(io, &pk.ChainedSubcommands)
+	}
 	protocol.Slice(io, &pk.Commands)
 	protocol.Slice(io, &pk.DynamicEnums)
 	protocol.Slice(io, &pk.Constraints)

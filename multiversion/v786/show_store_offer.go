@@ -41,5 +41,15 @@ func (*ShowStoreOffer) ID() uint32 {
 
 func (pk *ShowStoreOffer) Marshal(io protocol.IO) {
 	io.String(&pk.OfferID)
-	io.Uint8(&pk.Type)
+	if p := ProtoOf(io); p != 0 && p < 630 {
+		showAll := pk.Type != 0
+		io.Bool(&showAll)
+		if showAll {
+			pk.Type = 1
+		} else {
+			pk.Type = 0
+		}
+	} else {
+		io.Uint8(&pk.Type)
+	}
 }

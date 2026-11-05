@@ -69,7 +69,7 @@ func convertToLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok bo
 	case *LevelChunk:
 		return []packet.Packet{toLatestLevelChunk(pk)}, true
 	case *LevelSoundEvent:
-		return []packet.Packet{ToLatestLevelSoundEvent786(proto, pk)}, true
+		return LevelSoundPacketsToLatest(proto, pk), true
 	case *PlaySound:
 		return []packet.Packet{toLatestPlaySound(pk)}, true
 	case *JigsawStructureData:
@@ -249,7 +249,7 @@ func convertFromLatest(proto uint32, pk packet.Packet) (out []packet.Packet, ok 
 	case *packet.SubChunk:
 		return []packet.Packet{fromLatestSubChunk(proto, pk)}, true
 	case *packet.LevelSoundEvent:
-		return []packet.Packet{FromLatestLevelSoundEvent786(proto, pk)}, true
+		return LevelSoundPacketsFromLatest(proto, pk), true
 	case *packet.PlaySound:
 		return []packet.Packet{fromLatestPlaySound(pk)}, true
 	case *packet.JigsawStructureData:
