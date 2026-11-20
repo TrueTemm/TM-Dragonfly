@@ -1165,8 +1165,10 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 		ps.AttachedToEntityID = protocol.Option(int64(attachedEntityID))
 	}
 	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	var distance float64
 	switch shape := shape.(type) {
 	case *debug.Arrow:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeArrow)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
@@ -1177,29 +1179,34 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 			Segments:         protocol.Option(valueOrDefault(uint8(shape.HeadSegments), 4)),
 		}
 	case *debug.Box:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeBox)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
 		ps.Scale = protocol.Option(valueOrDefault(float32(shape.Scale), 1))
 		ps.ExtraShapeData = &protocol.BoxShape{BoxBound: valueOrDefault(vec64To32(shape.Bounds), mgl32.Vec3{1, 1, 1})}
 	case *debug.Circle:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeCircle)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
 		ps.Scale = protocol.Option(valueOrDefault(float32(shape.Scale), 1))
 		ps.ExtraShapeData = &protocol.SphereShape{Segments: valueOrDefault(uint8(shape.Segments), 20)}
 	case *debug.Line:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeLine)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
 		ps.ExtraShapeData = &protocol.LineShape{LineEndLocation: vec64To32(shape.EndPosition)}
 	case *debug.Sphere:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeSphere)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
 		ps.Scale = protocol.Option(valueOrDefault(float32(shape.Scale), 1))
 		ps.ExtraShapeData = &protocol.SphereShape{Segments: valueOrDefault(uint8(shape.Segments), 20)}
 	case *debug.Text:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeText)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
@@ -1222,6 +1229,7 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 		}
 		ps.ExtraShapeData = textData
 	case *debug.Cylinder:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeCylinder)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
@@ -1235,6 +1243,7 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 			NumSegments: valueOrDefault(uint8(shape.Segments), 20),
 		}
 	case *debug.Pyramid:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapePyramid)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
@@ -1248,6 +1257,7 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 		}
 		ps.ExtraShapeData = pyramid
 	case *debug.Ellipsoid:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeEllipsoid)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
@@ -1257,6 +1267,7 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 			SegmentsPerAxis: valueOrDefault(uint8(shape.SegmentsPerAxis), 20),
 		}
 	case *debug.Cone:
+		distance = shape.MaxRenderDistance
 		ps.Type = protocol.Option(protocol.PrimitiveShapeCone)
 		ps.Colour = protocol.Option(valueOrDefault(shape.Colour, white))
 		ps.Location = protocol.Option(vec64To32(shape.Position))
@@ -1268,6 +1279,9 @@ func debugShapeToProtocol(shape debug.Shape, dim world.Dimension, attachedEntity
 		}
 	default:
 		panic(fmt.Sprintf("unknown debug shape type %T", shape))
+	}
+	if distance > 0 {
+		ps.MaxRenderDistance = protocol.Option(float32(distance))
 	}
 	return ps
 }

@@ -60,7 +60,8 @@ type Arrow struct {
 
 	HeadSegments int
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Box struct {
@@ -74,7 +75,8 @@ type Box struct {
 
 	Bounds mgl64.Vec3
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Circle struct {
@@ -88,7 +90,8 @@ type Circle struct {
 
 	Segments int
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Line struct {
@@ -100,7 +103,8 @@ type Line struct {
 
 	EndPosition mgl64.Vec3
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Sphere struct {
@@ -114,7 +118,8 @@ type Sphere struct {
 
 	Segments int
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Text struct {
@@ -142,7 +147,8 @@ type Text struct {
 
 	HideBackfaceText bool
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Cylinder struct {
@@ -162,7 +168,8 @@ type Cylinder struct {
 
 	Segments int
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Pyramid struct {
@@ -180,7 +187,8 @@ type Pyramid struct {
 
 	Height float64
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Ellipsoid struct {
@@ -196,7 +204,8 @@ type Ellipsoid struct {
 
 	SegmentsPerAxis int
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
 
 type Cone struct {
@@ -214,5 +223,6 @@ type Cone struct {
 
 	Segments int
 
-	Entity *world.EntityHandle
+	MaxRenderDistance float64 // zero for unlimited
+	Entity            *world.EntityHandle
 }
