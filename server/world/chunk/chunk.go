@@ -131,6 +131,41 @@ func (chunk *Chunk) SetBiome(x uint8, y int16, z uint8, biome uint32) {
 	chunk.biomes[chunk.SubIndex(y)].Set(x, uint8(y), z, biome)
 }
 
+func (chunk *Chunk) SetBiomeSection(y int16, biomes [4][4][4]uint32) { // one biome per 4×4×4 cell
+	var (
+		values  [64]uint32
+		indices [4][4][4]uint16
+		count   int
+	)
+	for x := range biomes {
+		for y := range biomes[x] {
+			for z, biome := range biomes[x][y] {
+				index := 0
+				for index < count && values[index] != biome {
+					index++
+				}
+				if index == count {
+					values[count] = biome
+					count++
+				}
+				indices[x][y][z] = uint16(index)
+			}
+		}
+	}
+	size := paletteSizeFor(count)
+	storage := newPalettedStorage(make([]uint32, size.uint32s()), newPalette(size, slices.Clone(values[:count])))
+	if size != 0 {
+		for x := uint8(0); x < 16; x++ {
+			for z := uint8(0); z < 16; z++ {
+				for y := uint8(0); y < 16; y++ {
+					storage.setPaletteIndex(x, y, z, indices[x>>2][y>>2][z>>2])
+				}
+			}
+		}
+	}
+	chunk.biomes[chunk.SubIndex(y)] = storage
+}
+
 func (chunk *Chunk) Light(x uint8, y int16, z uint8) uint8 {
 	ux, uy, uz, sub := x&0xf, uint8(y&0xf), z&0xf, chunk.SubChunk(y)
 	sky := sub.SkyLight(ux, uy, uz)
