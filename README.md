@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/gopher.png" height="250" alt="Go gopher holding a Minecraft map">
+</p>
+
 <h1 align="center">TM-Dragonfly</h1>
 
 <p align="center">
