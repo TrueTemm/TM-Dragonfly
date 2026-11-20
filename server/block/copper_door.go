@@ -110,30 +110,13 @@ func (d CopperDoor) NeighbourUpdateTick(pos, changedNeighbour cube.Pos, tx *worl
 }
 
 func (d CopperDoor) UseOnBlock(pos cube.Pos, face cube.Face, _ mgl64.Vec3, tx *world.Tx, user item.User, ctx *item.UseContext) bool {
-	if face != cube.FaceUp {
-
-		return false
-	}
-	below := pos
-	pos = pos.Side(cube.FaceUp)
-	if !replaceableWith(tx, pos, d) || !replaceableWith(tx, pos.Side(cube.FaceUp), d) {
-		return false
-	}
-	if !tx.Block(below).Model().FaceSolid(below, cube.FaceUp, tx) {
+	var ok bool
+	pos, ok = doorPlacementPosition(pos, face, tx, d)
+	if !ok {
 		return false
 	}
 	d.Facing = user.Rotation().Direction()
-	left := tx.Block(pos.Side(d.Facing.RotateLeft().Face()))
-	right := tx.Block(pos.Side(d.Facing.RotateRight().Face()))
-	if _, ok := left.Model().(model.Door); ok {
-		d.Right = true
-	}
-
-	if diffuser, ok := right.(LightDiffuser); !ok || diffuser.LightDiffusionLevel() != 0 {
-		if diffuser, ok := left.(LightDiffuser); ok && diffuser.LightDiffusionLevel() == 0 {
-			d.Right = true
-		}
-	}
+	d.Right = doorHingeRight(pos, d.Facing, tx)
 
 	ctx.IgnoreBBox = true
 	place(tx, pos, d, user, ctx)
