@@ -141,10 +141,12 @@ func (storage *PalettedStorage) resize(newPaletteSize paletteSize) {
 	}
 
 	newStorage := newPalettedStorage(make([]uint32, newPaletteSize.uint32s()), storage.palette)
-	for x := byte(0); x < 16; x++ {
-		for y := byte(0); y < 16; y++ {
-			for z := byte(0); z < 16; z++ {
-				newStorage.setPaletteIndex(x, y, z, storage.paletteIndex(x, y, z))
+	if storage.bitsPerIndex != 0 { // uniform storage already uses index zero
+		for x := byte(0); x < 16; x++ {
+			for y := byte(0); y < 16; y++ {
+				for z := byte(0); z < 16; z++ {
+					newStorage.setPaletteIndex(x, y, z, storage.paletteIndex(x, y, z))
+				}
 			}
 		}
 	}
